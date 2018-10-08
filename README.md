@@ -1,2 +1,0 @@
-# yostocks
-yostocks restfull api
