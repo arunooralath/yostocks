@@ -1,0 +1,6 @@
+{
+    "env": {
+        "YS_MDB_PW": "password1",
+        "JWT_KEY": "secret"
+    }
+}
