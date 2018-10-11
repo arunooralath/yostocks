@@ -25,7 +25,8 @@ router.post("/signup", (req, res, next) => {
                             email: req.body.email,
                             password: hash,
                             fullName: req.body.fullName,
-                            countryCode: req.body.countryCode
+                            countryCode: req.body.countryCode,
+                            
                         });
                         user.save()
                             .then(result => {

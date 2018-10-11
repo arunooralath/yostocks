@@ -5,13 +5,14 @@ const bodyParser = require('body-parser');
 
 const mongoose = require('mongoose');
 const userRoutes = require('./api/routes/user');
+const productRoutes = require("./api/routes/products");
 
 mongoose.connect(
     "mongodb://root:" +
     process.env.YS_MDB_PW +
     "@ds125423.mlab.com:25423/yostocks",
     {
-        useMongoClient: true
+        useNewUrlParser: true
     }
 );
 
@@ -22,7 +23,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
 // Routes which should handle requests
-// app.use("/products", productRoutes);
+ app.use("/products", productRoutes);
 // app.use("/orders", orderRoutes);
 app.use("/user", userRoutes);
 
