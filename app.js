@@ -9,7 +9,7 @@ const productRoutes = require("./api/routes/products");
 
 mongoose.connect(
     "mongodb://root:" +
-    process.env.YS_MDB_PW +
+    "password1" +
     "@ds125423.mlab.com:25423/yostocks",
     {
         useNewUrlParser: true
