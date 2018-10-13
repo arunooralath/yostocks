@@ -26,6 +26,7 @@ router.get("/", (req, res, next) => {
 });
 // fetch product with name
 router.get("/:name", (req, res, next) => {
+    console.log("fetch product with name");
     const id = req.params.name;
     Product.find({ name: id })
         .exec()
@@ -36,7 +37,7 @@ router.get("/:name", (req, res, next) => {
             } else {
                 res
                     .status(404)
-                    .json({ message: "No valid entry found for provided ID" });
+                    .json({ message: "No valid entry found for provided name" });
             }
         })
         .catch(err => {
