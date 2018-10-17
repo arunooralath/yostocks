@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
-
+const JWT_KEY = "secret";
 router.post("/signup", (req, res, next) => {
     User.find({ email: req.body.email })
         .exec()
@@ -68,7 +68,7 @@ router.post("/login", (req, res, next) => {
                             email: user[0].email,
                             userId: user[0]._id
                         },
-                        "secret",
+                        JWT_KEY,
                         {
                             expiresIn: "7d"
                         }
