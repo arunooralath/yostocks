@@ -2,7 +2,6 @@ const express = require('express');
 const app = express();
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
-
 const mongoose = require('mongoose');
 const userRoutes = require('./api/routes/user');
 const productRoutes = require("./api/routes/products");
@@ -43,7 +42,7 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
     res.status(200).json({
-        message: 'It works!'
+        message: 'It works!....:)'
     });
 });
 
