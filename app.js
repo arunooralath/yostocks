@@ -5,10 +5,12 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const userRoutes = require('./api/routes/user');
 const productRoutes = require("./api/routes/products");
+var dotenv = require('dotenv');
+dotenv.load();
 
 mongoose.connect(
     "mongodb://root:" +
-    "password1" +
+    process.env.YS_MDB_PW +
     "@ds125423.mlab.com:25423/yostocks",
     {
         useNewUrlParser: true
