@@ -5,6 +5,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const JWT_KEY = "secret";
+
 router.post("/signup", (req, res, next) => {
     User.find({ email: req.body.email })
         .exec()

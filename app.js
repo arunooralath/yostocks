@@ -5,6 +5,8 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const userRoutes = require('./api/routes/user');
 const productRoutes = require("./api/routes/products");
+const warehouseStockRoutes = require("./api/routes/warehouseStock")
+const cronJob = require("./api/utils/cronJob")
 // var dotenv = require('dotenv');
 // dotenv.load();
 
@@ -27,6 +29,7 @@ app.use(bodyParser.json())
  app.use("/products", productRoutes);
 // app.use("/orders", orderRoutes);
 app.use("/user", userRoutes);
+app.use("/warehouse",warehouseStockRoutes);
 
 
 app.use((req, res, next) => {
@@ -47,5 +50,7 @@ app.use((req, res, next) => {
         message: 'It works!....:)'
     });
 });
+
+cronJob.start();
 
 module.exports = app;
