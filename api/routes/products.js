@@ -82,6 +82,13 @@ router.post("/addnew", (req, res, next) => {
             }
         });
 });
+router.post("/buy",(req,res,next)=> {
+
+});
+
+router.post("/sell",(req,res,next)=> {
+
+});
 
 module.exports = router;
 

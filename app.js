@@ -51,6 +51,6 @@ app.use((req, res, next) => {
     });
 });
 
-cronJob.start();
+// cronJob.start();
 
 module.exports = app;
