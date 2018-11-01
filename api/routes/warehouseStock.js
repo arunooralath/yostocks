@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const WarehouseStock = require("../models/warehouseStock");
 const Product = require("../models/product");
 
+
+
 // fetch all products
 router.get("/", (req, res, next) => {
     WarehouseStock.find()
