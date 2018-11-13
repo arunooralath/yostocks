@@ -5,7 +5,8 @@ const userPortfolioSchema = mongoose.Schema({
     email: string,
     symbol: string,
     stockUnits: number,
-    stockValueperUnit: number,
+    baseValueEntry: number,
+    baseValueLast:number,
     baseCurrency: string
 
 });
