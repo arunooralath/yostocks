@@ -6,6 +6,7 @@ const UserPortfolio = require("../models/userPortfolio");
 const User = require("../models/user");
 
 router.post("/buy", (req, res, next) => {
+    
 
 });
 
@@ -54,8 +55,32 @@ router.post("/sell", (req, res, next) => {
                                 $set: { wallet: userWallet }
                             }).exec().then(result => {
                                 // 5.update user portfolio
-                                UserPortfolio.findOne({email: userEmail,symbol:req.body.symbol}).exec().then(userPortfolio =>{
-                                    if()
+                                UserPortfolio.findOne({ email: userEmail, symbol: req.body.symbol }).exec().then(userPortfolio => {
+                                    console.log(userPortfolio);
+                                    // 5a.if portfolio exists update it
+                                    if (userPortfolio) {
+                                        var portfolioUnits = userPortfolio.stockUnits;
+                                        portfolioUnits -= userUnits;
+                                        UserPortfolio.updateOne({ email: userEmail, symbol: req.body.symbol }, {
+                                            $set: { stockUnits: portfolioUnits }
+                                        }).exec().then(result => {
+                                            createTransaction(); //6. Creating Sell Logs 
+                                        });
+
+                                    } else { //5b . if not create new portfolio
+                                        const userPortfolio = new UserPortfolio({
+                                            _id: new mongoose.Types.ObjectId(),
+                                            email: req.body.email,
+                                            symbol: req.body.symbol,
+                                            stockUnits: userUnits,
+                                            baseValueEntry: baseValue,
+                                            baseValueLast: baseValue,
+                                            baseCurrency: baseCurrency
+                                        });
+                                        userPortfolio.save().then(result => {
+                                            createTransaction();//6. Creating Sell Logs 
+                                        });
+                                    }
                                 })
 
 
@@ -73,6 +98,10 @@ router.post("/sell", (req, res, next) => {
         });
 
 });
+
+function createTransaction() {
+    console.log("Creating Sell Logs");
+}
 
 
 

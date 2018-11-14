@@ -2,13 +2,12 @@ const mongoose = require('mongoose');
 
 const userPortfolioSchema = mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
-    email: string,
-    symbol: string,
-    stockUnits: number,
-    baseValueEntry: number,
-    baseValueLast:number,
-    baseCurrency: string
+    email: String,
+    symbol: String,
+    stockUnits: Number,
+    baseValueEntry: Number,
+    baseValueLast:Number,
+    baseCurrency: String
 
 });
-
 module.exports = mongoose.model('UserPortfolio', userPortfolioSchema);

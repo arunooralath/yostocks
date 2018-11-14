@@ -10,7 +10,7 @@ const productSchema = mongoose.Schema({
     name:String,
     type:String,
     timeZone:String,
-    currency:Number,     
+    currency:String,     
     logo_url:String,
     tags:[String],
     date: { type: Date, default: Date.now },    

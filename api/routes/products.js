@@ -28,7 +28,7 @@ router.get("/", (req, res, next) => {
 router.get("/:name", (req, res, next) => {
     console.log("fetch product with name");
     const id = req.params.name;
-    Product.find({ name: id })
+    Product.find({ symbol: id })
         .exec()
         .then(doc => {
             console.log("From database", doc);
@@ -58,10 +58,11 @@ router.post("/addnew", (req, res, next) => {
             } else {
                 const product = new Product({
                     _id: new mongoose.Types.ObjectId(),
+                    symbol: req.body.symbol,
                     name: req.body.name,
-                    brand: req.body.brand,
                     logo_url: req.body.logo_url,
                     tags: req.body.tags,
+                    currency:req.body.currency
                 });
                 product
                     .save()
