@@ -111,9 +111,9 @@ router.delete("/:userId", (req, res, next) => {
 });
 
 router.post("/updateProfile", (req, res, next) => {
-    console.log("update profile",req.body);
-    User.findOne({ email: req.body.email }).exec().then(user => {        
-        if(user) {
+    console.log("update profile", req.body);
+    User.findOne({ email: req.body.email }).exec().then(user => {
+        if (user) {
             User.updateOne({ email: req.body.email }, {
                 $set: { firstName: req.body.firstName, lastName: req.body.lastName, age: req.body.age, password: req.body.password }
             }).exec().then(result => {
@@ -124,6 +124,39 @@ router.post("/updateProfile", (req, res, next) => {
         } else {
             res.status(500).json({
                 error: "No user Found"
+            });
+        }
+    })
+});
+
+router.get("/getUserDetails/:email", (req, res, next) => {
+    User.findOne({ email: req.params.email }).exec().then(result => {
+        if (result) {
+            res.status(200).json({
+                id: result._id,
+                email: result.email,
+                firstName: result.firstName,
+                lastName: result.lastName,
+                age: result.age
+            });
+        } else {
+            res.status(500).json({
+                error: "user not found"
+            });
+        }
+    })
+});
+
+router.get("/getWallet/:email", (req, res, next) => {
+    User.findOne({ email: req.params.email }).exec().then(result => {
+        if (result) {
+            res.status(200).json({
+                email: result.email,
+                wallet:result.wallet
+            });
+        } else {
+            res.status(500).json({
+                error: "user not found"
             });
         }
     })
