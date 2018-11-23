@@ -4,45 +4,7 @@ const mongoose = require("mongoose");
 const WarehouseStock = require("../models/warehouseStock");
 const UserPortfolio = require("../models/userPortfolio");
 const User = require("../models/user");
-const BuyTransactions = require("../models/buyTransactions");
-
-router.post("/buy", (req, res, next) => {
-  var wBasevalue, wUnits, wTotalValue;
-  WarehouseStock.findOne({ symbol: req.body.symbol })
-    .exec()
-    .then(doc => {
-      if (doc) {
-        //if stock found reduce the stock from warehouse
-        wBasevalue = doc.baseValue; //basevalue of stock warehouse
-        wUnits = doc.units; //Stock units in Warehouse
-        wTotalValue = doc.totalValue; //Total value of stock in Warehouse
-
-        console.log(req.body.units, doc.units);
-        // Check if adequete amount of units present in stock
-        if (req.body.units <= wUnits) {
-          wUnits = wUnits - req.body.units;
-          wTotalValue = wBasevalue * wUnits;
-
-          console.log(wBasevalue, wUnits, wTotalValue, req);
-          var response = createBuyTransaction(
-            wBasevalue,
-            wUnits,
-            wTotalValue,
-            req
-          );
-          res.send(response);
-        } else {
-          //Update warehouse Stock and proceed;
-          console.log("Update warehouse Stock");
-        }
-      } else {
-        //return no stock found
-        res.status(500).json({
-          error: "warehouse stock not found"
-        });
-      }
-    });
-});
+const BuySellTransactions = require("../models/buySellTransactions");
 
 router.post("/sell", (req, res, next) => {
   var baseValue, units, totalValue, baseCurrency;
@@ -149,6 +111,140 @@ router.post("/sell", (req, res, next) => {
     });
 });
 
+router.post("/sellstock", async (req, res, next) => {
+  console.log(req.body.email);
+
+  let user;
+  let stock;
+  let portfolio;
+  var pUnits, pBasevalue;
+  var sellUnits, sellAmount;
+  var wUnits, wTotalValue, wBaseValue, wBaseCurrency;
+  // fetch user,stock,portfolio
+  try {
+    user = await User.findOne({ email: req.body.email });
+    stock = await WarehouseStock.findOne({ symbol: req.body.symbol });
+    portfolio = await UserPortfolio.findOne({
+      email: req.body.email,
+      symbol: req.body.symbol
+    });
+  } catch (err) {
+    console.log("error fetching");
+    res.status(500).json({
+      error: err
+    });
+  }
+  // if portfolio amounts matches
+  if (portfolio && user && stock) {
+    console.log("portfolio && user && stock");
+
+    pUnits = parseFloat(portfolio.stockUnits); //portfolio units
+    sellUnits = parseFloat(req.body.units); //user selling units
+
+    // check if sellunits < = punits
+    if (sellUnits <= pUnits) {
+      console.log("sellUnits <= pUnits");
+
+      try {
+        wUnits = parseFloat(stock.units); //warehousestock Units
+        wBaseValue = parseFloat(stock.baseValue); //warehousestock basevalue
+        wTotalValue = parseFloat(stock.totalValue); //warehousestock total
+        wBaseCurrency = stock.baseCurrency; //Stock base currency
+
+        // update WarehouseStock
+        wUnits += sellUnits; //update warehousestock Units
+        wTotalValue = wUnits * wBaseValue;
+        await WarehouseStock.updateOne(
+          { symbol: req.body.symbol },
+          { $set: { units: wUnits, totalValue: wTotalValue } }
+        );
+      } catch (err) {
+        console.log("update WarehouseStock");
+        res.status(500).json({
+          error: err
+        });
+      }
+
+      try {
+        // update porfolio stocks
+        pUnits -= sellUnits;
+        await UserPortfolio.updateOne(
+          { email: req.body.email, symbol: req.body.symbol },
+          { $set: { stockUnits: pUnits, baseValueLast: wBaseValue } }
+        );
+      } catch (err) {
+        console.log("update porfolio stocks");
+        res.status(500).json({
+          error: err
+        });
+      }
+
+      try {
+        // update user wallet
+        var userWallet = parseFloat(user.wallet);
+        var amountBC = parseFloat(req.body.amountBC);
+        userWallet = userWallet + amountBC;
+        await User.updateOne(
+          { email: req.body.email },
+          {
+            $set: { wallet: userWallet }
+          }
+        );
+      } catch (err) {
+        console.log("update user wallet");
+        res.status(500).json({
+          error: err
+        });
+      }
+
+      var wbv = stock.baseValue;
+      var wbc = stock.baseCurrency;
+
+      // create and save newBuyTransactions
+      const sellTransaction = new BuySellTransactions({
+        _id: new mongoose.Types.ObjectId(),
+        type: "sell",
+        emailId: req.body.email,
+        symbol: req.body.symbol,
+        units: sellUnits,
+        basePrice: wbv,
+        baseCurrencyAmount: amountBC,
+        localCurrencyAmount: req.body.amountLC,
+        baseCurrency: wbc
+      });
+
+      console.log(sellTransaction);
+
+      sellTransaction
+        .save()
+        .then(result => {
+          console.log("Sell Transaction then");
+          res.send(result);
+        })
+        .catch(err => {
+          console.log(err);
+          res.status(500).json({
+            error: err
+          });
+        });
+
+      // var newSellTransactions = await sellTransaction.save();
+      // console.log("newSellTransactions ", newSellTransactions);
+      // res.send(newSellTransactions);
+    } else {
+      res.status(401).json({
+        err: "Unautorised",
+        msg: "No stock units in portfolio"
+      });
+    }
+  } else {
+    res.status(401).json({
+      err: "Unautorised",
+      msg: "No such portfolio or user or warehouseStock"
+    });
+  }
+});
+
 router.post("/buystock", async (req, res, next) => {
   console.log(req.body.email);
   let user;
@@ -207,6 +303,7 @@ router.post("/buystock", async (req, res, next) => {
         if (portfolio) {
           pUnits = parseFloat(portfolio.stockUnits);
           pUnits += buyUnits;
+          console.log("Update Portfolio");
           await UserPortfolio.updateOne(
             { email: req.body.email, symbol: req.body.symbol },
             { $set: { stockUnits: pUnits, baseValueLast: wBasevalue } }
@@ -231,28 +328,41 @@ router.post("/buystock", async (req, res, next) => {
           }
         }
         // create and save newBuyTransactions
-        const buyTransaction = new BuyTransactions({
+        const buyTransaction = new BuySellTransactions({
           _id: new mongoose.Types.ObjectId(),
-          email: req.body.email,
-          symbol:req.body.symbol,
+          type: "buy",
+          emailId: req.body.email,
+          symbol: req.body.symbol,
           units: buyUnits,
-          basePrice:wBasevalue,
+          basePrice: wBasevalue,
           baseCurrencyAmount: amountBC,
           localCurrencyAmount: req.body.amountLC,
-          baseCurrency: wBaseCurrency          
+          baseCurrency: wBaseCurrency
         });
-        try{
+
+        console.log("buy Transaction");
+
+        buyTransaction
+          .save()
+          .then(result => {
+            console.log("buy Transaction then");
+            res.send(result);
+          })
+          .catch(err => {
+            console.log(err);
+            res.status(500).json({
+              error: err
+            });
+          });
+
+        /* try {
           newBuyTransactions = await buyTransaction.save();
-          
-        }
-        catch(err){
-          console.log("err at last")
+        } catch (err) {
+          console.log("err at last");
           res.status(500).json({
             error: err
           });
-        }
-        res.send(newBuyTransactions);
-
+        } */
       } else {
         // Update warehouse stock and then complete transaction
         res.send("update wsStock complete Transaction");
@@ -260,8 +370,6 @@ router.post("/buystock", async (req, res, next) => {
     } else {
       sendError(res);
     }
-
-    res.send(user);
   } else {
     res.status(401).json({
       message: "Insufficient wallet Balance"

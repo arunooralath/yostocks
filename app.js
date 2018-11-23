@@ -7,6 +7,8 @@ const userRoutes = require('./api/routes/user');
 const productRoutes = require("./api/routes/products");
 const warehouseStockRoutes = require("./api/routes/warehouseStock");
 const tradeRoutes = require("./api/routes/buysell");
+const userPortfolio = require("./api/routes/userPortfolio");
+
 // const cronJob = require("./api/utils/cronJob")
 // var dotenv = require('dotenv');
 // dotenv.load();
@@ -32,6 +34,8 @@ app.use(bodyParser.json())
 app.use("/user", userRoutes);
 app.use("/warehouse",warehouseStockRoutes);
 app.use("/trade",tradeRoutes);
+app.use("/portfolio",userPortfolio);
+
 
 
 app.use((req, res, next) => {

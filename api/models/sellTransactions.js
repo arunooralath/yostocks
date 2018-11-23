@@ -1,14 +1,14 @@
 const mongoose = require("mongoose");
 
-const buyTransactionsSchema = mongoose.Schema({
+const sellTransactionsSchema = mongoose.Schema({
   _id: mongoose.Schema.Types.ObjectId,
-  email: {
+  emailId: {
     type: String,
-    required: true    
+    required: true
   },
   symbol: {
     type: String,
-    required: true    
+    required: true
   },
   units: {
     type: Number,
@@ -36,4 +36,4 @@ const buyTransactionsSchema = mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model("BuyTransactions", buyTransactionsSchema);
+module.exports = mongoose.model("SellTransactions", sellTransactionsSchema);
