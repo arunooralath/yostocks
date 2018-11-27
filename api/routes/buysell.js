@@ -5,6 +5,7 @@ const WarehouseStock = require("../models/warehouseStock");
 const UserPortfolio = require("../models/userPortfolio");
 const User = require("../models/user");
 const BuySellTransactions = require("../models/buySellTransactions");
+const axios = require("axios");
 
 router.post("/sellstock", async (req, res, next) => {
   console.log(req.body.email);
@@ -268,6 +269,171 @@ router.post("/buystock", async (req, res, next) => {
   } else {
     res.status(401).json({
       message: "Insufficient wallet Balance"
+    });
+  }
+});
+
+//sevice to confirm the buy transaction
+router.post("/confirmbuy", async (req, res, next) => {
+  // res.send(req.body);
+  let user, stock, portfolio;
+  let units, basePrice, totalValue, baseCurrency, wallet, localCurrency;
+  localCurrency = req.body.localCurrency;
+  // get the user object from DB
+  try {
+    user = await User.findOne({ email: req.body.email });
+    stock = await WarehouseStock.findOne({ symbol: req.body.symbol });
+    portfolio = await UserPortfolio.findOne({
+      email: req.body.email,
+      symbol: req.body.symbol
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err
+    });
+  }
+  console.log(stock);
+  // update the WarehouseStock basePrice
+  const qoute = await axios.get(
+    "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
+      req.body.symbol +
+      "&apikey=3WJVTZ3CHLY55LZB"
+  );
+  console.log(qoute.data["Global Quote"]["05. price"]);
+  basePrice = parseFloat(qoute.data["Global Quote"]["05. price"]);
+  // if both user and stock exists
+  if (user && stock) {
+    wallet = user.wallet;
+    units = stock.units;
+    baseCurrency = stock.baseCurrency;
+    // basePrice = parseFloat(stock.baseValue);
+    console.log(wallet, units, baseCurrency, basePrice);
+    totalValue = parseFloat(basePrice * units);
+
+    await WarehouseStock.updateOne(
+      { symbol: req.body.symbol },
+      { $set: { baseValue: basePrice, totalValue: totalValue } }
+    );
+    // if portfolio exists
+    if (portfolio) {
+      try {
+        await UserPortfolio.updateOne(
+          { email: req.body.email, symbol: req.body.symbol },
+          { $set: { baseValueLast: basePrice } }
+        );
+      } catch (err) {
+        res.status(500).json({
+          error: err
+        });
+      }
+    }
+
+    const forex = await axios.get(
+      "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=" +
+        baseCurrency +
+        "&to_currency=" +
+        localCurrency +
+        "&apikey=3WJVTZ3CHLY55LZB"
+    );
+
+    let localcurrencyprice =
+      basePrice *
+      parseFloat(
+        forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
+      );
+
+    res.status(200).json({
+      baseprice: basePrice,
+      wallet: wallet,
+      basecurrency: baseCurrency,
+      stockUnits: units,
+      localbaseprice: localcurrencyprice
+    });
+  } else {
+    res.status(401).json({
+      message: "UnAuthorised"
+    });
+  }
+});
+
+// service to confirm sell transaction
+router.post("/confirmsell", async (req, res, next) => {
+  // res.send(req.body);
+  let user, stock, portfolio;
+  let units, basePrice, totalValue, baseCurrency, portfolioUnits, localCurrency;
+  localCurrency = req.body.localCurrency;
+  // get the user object from DB
+  try {
+    user = await User.findOne({ email: req.body.email });
+    stock = await WarehouseStock.findOne({ symbol: req.body.symbol });
+    portfolio = await UserPortfolio.findOne({
+      email: req.body.email,
+      symbol: req.body.symbol
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err
+    });
+  }
+  console.log(stock);
+  // update the WarehouseStock basePrice
+  const qoute = await axios.get(
+    "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
+      req.body.symbol +
+      "&apikey=3WJVTZ3CHLY55LZB"
+  );
+
+  console.log(qoute.data["Global Quote"]["05. price"]);
+  basePrice = parseFloat(qoute.data["Global Quote"]["05. price"]);
+  // if both user and stock exists
+  if (user && stock && portfolio) {
+    portfolioUnits = portfolio.stockUnits;
+    units = stock.units;
+    baseCurrency = stock.baseCurrency;
+    // basePrice = parseFloat(stock.baseValue);
+    console.log(portfolioUnits, units, baseCurrency, basePrice);
+    totalValue = parseFloat(basePrice * units);
+
+    await WarehouseStock.updateOne(
+      { symbol: req.body.symbol },
+      { $set: { baseValue: basePrice, totalValue: totalValue } }
+    );
+    // if portfolio exists
+    try {
+      await UserPortfolio.updateOne(
+        { email: req.body.email, symbol: req.body.symbol },
+        { $set: { baseValueLast: basePrice } }
+      );
+    } catch (err) {
+      res.status(500).json({
+        error: err
+      });
+    }
+
+    const forex = await axios.get(
+      "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=" +
+        baseCurrency +
+        "&to_currency=" +
+        localCurrency +
+        "&apikey=3WJVTZ3CHLY55LZB"
+    );
+
+    let localcurrencyprice =
+      basePrice *
+      parseFloat(
+        forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
+      );
+
+    res.status(200).json({
+      baseprice: basePrice,
+      portfolioUnits: portfolioUnits,
+      basecurrency: baseCurrency,
+      stockUnits: units,
+      localbaseprice: localcurrencyprice
+    });
+  } else {
+    res.status(401).json({
+      message: "UnAuthorised"
     });
   }
 });
