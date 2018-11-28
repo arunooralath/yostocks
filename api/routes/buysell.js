@@ -15,7 +15,7 @@ router.post("/sellstock", async (req, res, next) => {
   let portfolio;
   var pUnits, pBasevalue;
   var sellUnits, sellAmount;
-  var wUnits, wTotalValue, wBaseValue, wBaseCurrency;
+  var wUnits, wTotalValue, wBaseValue, wBaseCurrency,amountBC,brandname,amountLC;
   // fetch user,stock,portfolio
   try {
     user = await User.findOne({ email: req.body.email });
@@ -30,20 +30,44 @@ router.post("/sellstock", async (req, res, next) => {
       error: err
     });
   }
-  // if portfolio amounts matches
+  // if portfolio,stock and user exists
   if (portfolio && user && stock) {
     console.log("portfolio && user && stock");
 
     pUnits = parseFloat(portfolio.stockUnits); //portfolio units
-    sellUnits = parseFloat(req.body.units); //user selling units
+    wBaseCurrency = stock.baseCurrency; //Stock base currency
+    brandname = stock.brandname;
 
+    const qoute = await await axios.get(
+      "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
+        req.body.symbol +
+        "&apikey=3WJVTZ3CHLY55LZB"
+    );
+
+    let realBasePrice = parseFloat(qoute.data["Global Quote"]["05. price"]);
+
+    const forex = await axios.get(
+      "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=" +
+        req.body.localcurrency +
+        "&to_currency=" +
+        wBaseCurrency +
+        "&apikey=3WJVTZ3CHLY55LZB"
+    );
+
+    let exgRate = parseFloat(
+      forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
+    );
+    amountLC = parseFloat(req.body.amountLC);
+    amountBC = amountLC * exgRate;
+    wBaseValue = realBasePrice;
+    sellUnits = amountBC / wBaseValue; //user selling units
     // check if sellunits < = punits
     if (sellUnits <= pUnits) {
       console.log("sellUnits <= pUnits");
 
       try {
         wUnits = parseFloat(stock.units); //warehousestock Units
-        wBaseValue = parseFloat(stock.baseValue); //warehousestock basevalue
+        // wBaseValue = parseFloat(stock.baseValue); //warehousestock basevalue
         wTotalValue = parseFloat(stock.totalValue); //warehousestock total
         wBaseCurrency = stock.baseCurrency; //Stock base currency
 
@@ -52,7 +76,13 @@ router.post("/sellstock", async (req, res, next) => {
         wTotalValue = wUnits * wBaseValue;
         await WarehouseStock.updateOne(
           { symbol: req.body.symbol },
-          { $set: { units: wUnits, totalValue: wTotalValue } }
+          {
+            $set: {
+              units: wUnits,
+              baseValue: wBaseValue,
+              totalValue: wTotalValue
+            }
+          }
         );
       } catch (err) {
         console.log("update WarehouseStock");
@@ -77,8 +107,7 @@ router.post("/sellstock", async (req, res, next) => {
 
       try {
         // update user wallet
-        var userWallet = parseFloat(user.wallet);
-        var amountBC = parseFloat(req.body.amountBC);
+        var userWallet = parseFloat(user.wallet);        
         userWallet = userWallet + amountBC;
         await User.updateOne(
           { email: req.body.email },
@@ -102,6 +131,7 @@ router.post("/sellstock", async (req, res, next) => {
         type: "sell",
         emailId: req.body.email,
         symbol: req.body.symbol,
+        brandname:brandname,
         units: sellUnits,
         basePrice: wbv,
         baseCurrencyAmount: amountBC,
@@ -146,9 +176,9 @@ router.post("/buystock", async (req, res, next) => {
   let user;
   let stock;
   let portfolio;
-  let newBuyTransactions;
-  var amountBC = parseFloat(req.body.amountBC);
-  var wBasevalue, wUnits, wTotalValue, wBaseCurrency; //WarehouseStock variable
+  let localCurrency = req.body.localcurrency;
+  var amountLC, amountBC;
+  var wBasevalue, wUnits, wTotalValue, wBaseCurrency, wBrandName; //WarehouseStock variable
   var pUnits, pBasevalue; //portfolio variable
   try {
     user = await User.findOne({ email: req.body.email });
@@ -162,15 +192,42 @@ router.post("/buystock", async (req, res, next) => {
       error: err
     });
   }
-
-  // if User wallet ok
-  if (user && amountBC <= user.wallet) {
-    wUnits = stock.units; //WarehouseStock units
-    wBasevalue = stock.baseValue;
-    var buyUnits = wBasevalue / amountBC; //units to be bought
+  console.log(stock);
+  // if stock of product found
+  if (stock) {
+    wBrandName = stock.brandname;
     wBaseCurrency = stock.baseCurrency;
-    // if stock of product found
-    if (stock) {
+    // calculate Units with realtime Stock data
+    amountLC = parseFloat(req.body.amountLC);
+    const qoute = await await axios.get(
+      "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
+        req.body.symbol +
+        "&apikey=3WJVTZ3CHLY55LZB"
+    );
+
+    let realBasePrice = parseFloat(qoute.data["Global Quote"]["05. price"]);
+    const forex = await axios.get(
+      "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=" +
+        localCurrency +
+        "&to_currency=" +
+        wBaseCurrency +
+        "&apikey=3WJVTZ3CHLY55LZB"
+    );
+
+    let exgRate = parseFloat(
+      forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
+    );
+
+    // convert amount in localCurrency to basecurrency
+    amountBC = amountLC * exgRate;
+    wBasevalue = realBasePrice;
+
+    // if User wallet ok
+    if (user && amountBC <= user.wallet) {
+      wUnits = stock.units; //WarehouseStock units
+      wBasevalue = stock.baseValue;
+      var buyUnits = wBasevalue / amountBC; //units to be bought
+
       // if stock quantity available
       if (buyUnits <= wUnits) {
         // complete transaction
@@ -192,7 +249,13 @@ router.post("/buystock", async (req, res, next) => {
         wTotalValue = wBasevalue * wUnits;
         await WarehouseStock.updateOne(
           { symbol: req.body.symbol },
-          { $set: { units: wUnits, totalValue: wTotalValue } }
+          {
+            $set: {
+              units: wUnits,
+              baseValue: wBasevalue,
+              totalValue: wTotalValue
+            }
+          }
         );
 
         // Update portfolio
@@ -210,6 +273,7 @@ router.post("/buystock", async (req, res, next) => {
             _id: new mongoose.Types.ObjectId(),
             email: req.body.email,
             symbol: req.body.symbol,
+            brandname: stock.brandname,
             stockUnits: buyUnits,
             baseValueEntry: wBasevalue,
             baseValueLast: wBasevalue,
@@ -229,6 +293,7 @@ router.post("/buystock", async (req, res, next) => {
           type: "buy",
           emailId: req.body.email,
           symbol: req.body.symbol,
+          brandname: stock.brandname,
           units: buyUnits,
           basePrice: wBasevalue,
           baseCurrencyAmount: amountBC,
@@ -264,12 +329,12 @@ router.post("/buystock", async (req, res, next) => {
         res.send("update wsStock complete Transaction");
       }
     } else {
-      sendError(res);
+      res.status(401).json({
+        message: "Insufficient wallet Balance"
+      });
     }
   } else {
-    res.status(401).json({
-      message: "Insufficient wallet Balance"
-    });
+    sendError(res);
   }
 });
 
@@ -431,7 +496,7 @@ router.post("/confirmsell", async (req, res, next) => {
       baseprice: basePrice,
       portfolioUnits: portfolioUnits,
       basecurrency: baseCurrency,
-      exchangeRate:exgRate,      
+      exchangeRate: exgRate,
       localbaseprice: localcurrencyprice
     });
   } else {

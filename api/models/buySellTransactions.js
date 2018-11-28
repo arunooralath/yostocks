@@ -14,6 +14,10 @@ const buySellTransactionsSchema = mongoose.Schema({
     type: String,
     required: true
   },
+  brandname: {
+    type: String,
+    required: true
+  },
   units: {
     type: Number,
     required: true

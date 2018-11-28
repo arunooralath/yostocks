@@ -3,11 +3,14 @@ const app = express();
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+
+// user routes
 const userRoutes = require('./api/routes/user');
 const productRoutes = require("./api/routes/products");
 const warehouseStockRoutes = require("./api/routes/warehouseStock");
 const tradeRoutes = require("./api/routes/buysell");
 const userPortfolio = require("./api/routes/userPortfolio");
+const userLogs = require("./api/routes/buySellTransactions");
 
 // const cronJob = require("./api/utils/cronJob")
 // var dotenv = require('dotenv');
@@ -35,6 +38,7 @@ app.use("/user", userRoutes);
 app.use("/warehouse",warehouseStockRoutes);
 app.use("/trade",tradeRoutes);
 app.use("/portfolio",userPortfolio);
+app.use("/logs",userLogs);
 
 
 

@@ -7,21 +7,29 @@ const warehouseStockSchema = mongoose.Schema({
         required: true,
         unique: true,
     },
+    brandname: {
+        type: String,
+        required: true        
+    },
     units: {
         type: Number,
-        required: true
+        required: true,
+        default:"0"
     },
     baseValue: {
         type: Number,
-        required: true
+        required: true,
+        default:"0"
     },
     totalValue: {
         type: Number,
-        required: true
+        required: true,
+        default:""
     },
     baseCurrency: {
         type: String,
-        required: true
+        required: true,
+        default:"USD"
     }
 
 });
