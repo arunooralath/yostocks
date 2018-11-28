@@ -336,15 +336,18 @@ router.post("/confirmbuy", async (req, res, next) => {
         "&apikey=3WJVTZ3CHLY55LZB"
     );
 
-    let localcurrencyprice =
-      basePrice *
-      parseFloat(
-        forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
-      );
+    let exgRate = parseFloat(
+      forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
+    );
+
+    let localcurrencyprice = basePrice * exgRate;
+    let localwallet = wallet * exgRate;
 
     res.status(200).json({
       baseprice: basePrice,
+      exchangeRate: exgRate,
       wallet: wallet,
+      localwallet: localwallet,
       basecurrency: baseCurrency,
       stockUnits: units,
       localbaseprice: localcurrencyprice
@@ -418,17 +421,17 @@ router.post("/confirmsell", async (req, res, next) => {
         "&apikey=3WJVTZ3CHLY55LZB"
     );
 
-    let localcurrencyprice =
-      basePrice *
-      parseFloat(
-        forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
-      );
+    let exgRate = parseFloat(
+      forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
+    );
+
+    let localcurrencyprice = basePrice * exgRate;
 
     res.status(200).json({
       baseprice: basePrice,
       portfolioUnits: portfolioUnits,
       basecurrency: baseCurrency,
-      stockUnits: units,
+      exchangeRate:exgRate,      
       localbaseprice: localcurrencyprice
     });
   } else {
