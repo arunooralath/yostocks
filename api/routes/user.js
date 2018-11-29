@@ -179,23 +179,17 @@ router.get("/getWallet/:email", (req, res, next) => {
 });
 
 // admin services
-router.get("/details/:email", (req, res, next) => {
-  User.findOne({ email: req.params.email })
-    .exec()
-    .then(result => {
-      if (result) {
-        res.status(200).json({
-          email: result.email,
-          wallet: result.wallet
-        });
-      } else {
-        res.status(500).json({
-          error: "user not found"
-        });
-      }
+router.get("/", async (req, res, next) => {
+  let user;
+  try {
+    user = await User.find();
+    res.send(user);
+  } catch (err) {
+    res.status(500).json({
+      error: "user not found"
     });
+  }
 });
-
 
 // custom functions
 function splitName(fullName) {
