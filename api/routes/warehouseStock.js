@@ -109,7 +109,7 @@ router.post("/update", async (req, res, next) => {
   console.log(req.body);
   try {
     stock = await WarehouseStock.findOne({ symbol: req.body.symbol });
-    const qoute = await await axios.get(
+    const qoute = await axios.get(
       "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
         req.body.symbol +
         "&apikey=3WJVTZ3CHLY55LZB"
