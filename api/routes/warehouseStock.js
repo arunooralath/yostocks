@@ -117,6 +117,7 @@ router.post("/update", async (req, res, next) => {
     if (stock) {
       console.log("stock found");
       stockUnits = parseFloat(stock.units);
+      baseValue = parseFloat(stock.baseValue);
       //   stockTotalValue = parseFloat(stock.totalValue);
       let basePrice = parseFloat(qoute.data["Global Quote"]["05. price"]);
       units = parseFloat(req.body.units);
@@ -130,7 +131,8 @@ router.post("/update", async (req, res, next) => {
             $set: {
               units: units,
               totalValue: totalValue,
-              baseValue: basePrice
+              baseValue: basePrice,
+              preBaseValue:baseValue
             }
           }
         );

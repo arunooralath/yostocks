@@ -26,11 +26,17 @@ const warehouseStockSchema = mongoose.Schema({
         required: true,
         default:""
     },
+    preBaseValue: {
+        type: Number,
+        required: true,
+        default:"0"
+    },
     baseCurrency: {
         type: String,
         required: true,
         default:"USD"
     }
+
 
 });
 module.exports = mongoose.model('WarehouseStock', warehouseStockSchema);

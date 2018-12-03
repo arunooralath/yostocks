@@ -172,7 +172,6 @@ router.post("/sellstock", async (req, res, next) => {
 });
 
 router.post("/buystock", async (req, res, next) => {
-  console.log(req.body.email);
   let user;
   let stock;
   let portfolio;
@@ -180,6 +179,7 @@ router.post("/buystock", async (req, res, next) => {
   var amountLC, amountBC;
   var wBasevalue, wUnits, wTotalValue, wBaseCurrency, wBrandName; //WarehouseStock variable
   var pUnits, pBasevalue; //portfolio variable
+  console.log("body",req.body.email);
   try {
     user = await User.findOne({ email: req.body.email });
     stock = await WarehouseStock.findOne({ symbol: req.body.symbol });

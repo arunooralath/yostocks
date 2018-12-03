@@ -26,12 +26,6 @@ router.post("/alltransactions", async (req, res, next) => {
   res.send(transactions);
 });
 
-// buy stocks to portfolio
-router.post("/buy", (req, res, next) => {});
-
-// sell stocks from portfolio
-router.post("/sell", (req, res, next) => {});
-
 // get portfolio status
 router.post("/status", async (req, res, next) => {
   let userEmail = req.body.email;
@@ -70,10 +64,10 @@ router.post("/status", async (req, res, next) => {
             userCurrency +
             "&apikey=3WJVTZ3CHLY55LZB"
         );
-        // console.log(forex.data);
+        console.log(forex.data);
         // get exchange rate
         let exgRate = parseFloat(
-          forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
+          forex.data['Realtime Currency Exchange Rate']['5. Exchange Rate']
         );
 
         // BA = BA * exgRate;

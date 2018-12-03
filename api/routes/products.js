@@ -25,7 +25,7 @@ router.get("/list/:currency", async (req, res, next) => {
   let arr2 = [];
   let prodResponse = [];
   try {
-    let product = await Product.find();
+    let product = await WarehouseStock.find();
 
     product.forEach(element => {
       arr.push(element.symbol);
@@ -33,31 +33,30 @@ router.get("/list/:currency", async (req, res, next) => {
     console.log(arr.toString());
 
     for (i = 0; i < product.length; i++) {
-      // console.log(product[i].symbol,qoute[i].symbol)
-      const response = await axios.get(
-        "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
-          product[i].symbol +
-          "&apikey=3WJVTZ3CHLY55LZB"
-      );
-      // console.log(response.data);
+      // const response = await axios.get(
+      //   "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
+      //     product[i].symbol +
+      //     "&apikey=3WJVTZ3CHLY55LZB"
+      // );
 
-      let basePrice = parseFloat(response.data["Global Quote"]["05. price"]);
-      let change = response.data["Global Quote"]["09. change"];
+      // let basePrice = parseFloat(response.data["Global Quote"]["05. price"]);
+      // let change = response.data["Global Quote"]["09. change"];
+
+      let basePrice = parseFloat(product[i].baseValue);
+      let change = basePrice - (parseFloat(product[i].preBaseValue));
 
       const forex = await axios.get(
-        "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=" +
-          product[i].currency +
-          "&to_currency=" +
-          currency +
-          "&apikey=3WJVTZ3CHLY55LZB"
+        "https://api.exchangeratesapi.io/latest?base=" +
+          product[i].baseCurrency +
+          "&symbols=" +
+          currency
       );
 
-      let exgRate = parseFloat(
-        forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
-      );
+      let exgRate = parseFloat(forex.data["rates"][currency]);
       let stat;
       let localcurrencyprice = basePrice * exgRate;
       change = change * exgRate;
+
       if (change < 0) stat = "loss";
       else stat = "gain";
 
@@ -131,6 +130,7 @@ router.post("/add", async (req, res, next) => {
         brandname: req.body.brandname,
         units: "0",
         baseValue: "0",
+        preBaseValue:"0",
         totalValue: "0",
         baseCurrency: req.body.currency
       });
@@ -139,6 +139,7 @@ router.post("/add", async (req, res, next) => {
         let stockRes = await warehouseStock.save();
         res.send(productRes);
       } catch (err) {
+        console.log(err);
         res.status(500).json({
           error: err
         });
