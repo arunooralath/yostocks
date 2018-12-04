@@ -11,6 +11,7 @@ const warehouseStockRoutes = require("./api/routes/warehouseStock");
 const tradeRoutes = require("./api/routes/buysell");
 const userPortfolio = require("./api/routes/userPortfolio");
 const userLogs = require("./api/routes/buySellTransactions");
+const userInterest = require("./api/routes/userInterest");
 
 // const cronJob = require("./api/utils/cronJob")
 // var dotenv = require('dotenv');
@@ -37,6 +38,7 @@ app.use("/warehouse", warehouseStockRoutes);
 app.use("/trade", tradeRoutes);
 app.use("/portfolio", userPortfolio);
 app.use("/logs", userLogs);
+app.use("/interest", userInterest);
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
