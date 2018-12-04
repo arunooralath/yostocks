@@ -15,7 +15,13 @@ router.post("/sellstock", async (req, res, next) => {
   let portfolio;
   var pUnits, pBasevalue;
   var sellUnits, sellAmount;
-  var wUnits, wTotalValue, wBaseValue, wBaseCurrency,amountBC,brandname,amountLC;
+  var wUnits,
+    wTotalValue,
+    wBaseValue,
+    wBaseCurrency,
+    amountBC,
+    brandname,
+    amountLC;
   // fetch user,stock,portfolio
   try {
     user = await User.findOne({ email: req.body.email });
@@ -38,25 +44,17 @@ router.post("/sellstock", async (req, res, next) => {
     wBaseCurrency = stock.baseCurrency; //Stock base currency
     brandname = stock.brandname;
 
-    const qoute = await await axios.get(
-      "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
-        req.body.symbol +
-        "&apikey=3WJVTZ3CHLY55LZB"
-    );
-
-    let realBasePrice = parseFloat(qoute.data["Global Quote"]["05. price"]);
+    let realBasePrice = parseFloat(stock.baseValue);
 
     const forex = await axios.get(
-      "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=" +
+      "https://api.exchangeratesapi.io/latest?base=" +
         req.body.localcurrency +
-        "&to_currency=" +
-        wBaseCurrency +
-        "&apikey=3WJVTZ3CHLY55LZB"
+        "&symbols=" +
+        wBaseCurrency
     );
 
-    let exgRate = parseFloat(
-      forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
-    );
+    let exgRate = parseFloat(forex.data["rates"][wBaseCurrency]);
+
     amountLC = parseFloat(req.body.amountLC);
     amountBC = amountLC * exgRate;
     wBaseValue = realBasePrice;
@@ -79,7 +77,6 @@ router.post("/sellstock", async (req, res, next) => {
           {
             $set: {
               units: wUnits,
-              baseValue: wBaseValue,
               totalValue: wTotalValue
             }
           }
@@ -107,7 +104,7 @@ router.post("/sellstock", async (req, res, next) => {
 
       try {
         // update user wallet
-        var userWallet = parseFloat(user.wallet);        
+        var userWallet = parseFloat(user.wallet);
         userWallet = userWallet + amountBC;
         await User.updateOne(
           { email: req.body.email },
@@ -131,7 +128,7 @@ router.post("/sellstock", async (req, res, next) => {
         type: "sell",
         emailId: req.body.email,
         symbol: req.body.symbol,
-        brandname:brandname,
+        brandname: brandname,
         units: sellUnits,
         basePrice: wbv,
         baseCurrencyAmount: amountBC,
@@ -179,7 +176,7 @@ router.post("/buystock", async (req, res, next) => {
   var amountLC, amountBC;
   var wBasevalue, wUnits, wTotalValue, wBaseCurrency, wBrandName; //WarehouseStock variable
   var pUnits, pBasevalue; //portfolio variable
-  console.log("body",req.body.email);
+  console.log("body", req.body.email);
   try {
     user = await User.findOne({ email: req.body.email });
     stock = await WarehouseStock.findOne({ symbol: req.body.symbol });
@@ -197,26 +194,20 @@ router.post("/buystock", async (req, res, next) => {
   if (stock) {
     wBrandName = stock.brandname;
     wBaseCurrency = stock.baseCurrency;
+
     // calculate Units with realtime Stock data
     amountLC = parseFloat(req.body.amountLC);
-    const qoute = await await axios.get(
-      "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
-        req.body.symbol +
-        "&apikey=3WJVTZ3CHLY55LZB"
-    );
 
-    let realBasePrice = parseFloat(qoute.data["Global Quote"]["05. price"]);
+    let realBasePrice = parseFloat(stock.baseValue);
+
     const forex = await axios.get(
-      "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=" +
-        localCurrency +
-        "&to_currency=" +
-        wBaseCurrency +
-        "&apikey=3WJVTZ3CHLY55LZB"
+      "https://api.exchangeratesapi.io/latest?base=" +
+        req.body.localcurrency +
+        "&symbols=" +
+        wBaseCurrency
     );
 
-    let exgRate = parseFloat(
-      forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
-    );
+    let exgRate = parseFloat(forex.data["rates"][wBaseCurrency]);
 
     // convert amount in localCurrency to basecurrency
     amountBC = amountLC * exgRate;
@@ -252,7 +243,6 @@ router.post("/buystock", async (req, res, next) => {
           {
             $set: {
               units: wUnits,
-              baseValue: wBasevalue,
               totalValue: wTotalValue
             }
           }
@@ -357,15 +347,8 @@ router.post("/confirmbuy", async (req, res, next) => {
       error: err
     });
   }
-  console.log(stock);
-  // update the WarehouseStock basePrice
-  const qoute = await axios.get(
-    "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
-      req.body.symbol +
-      "&apikey=3WJVTZ3CHLY55LZB"
-  );
-  console.log(qoute.data["Global Quote"]["05. price"]);
-  basePrice = parseFloat(qoute.data["Global Quote"]["05. price"]);
+
+  basePrice = parseFloat(stock.baseValue);
   // if both user and stock exists
   if (user && stock) {
     wallet = user.wallet;
@@ -394,17 +377,14 @@ router.post("/confirmbuy", async (req, res, next) => {
     }
 
     const forex = await axios.get(
-      "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=" +
+      "https://api.exchangeratesapi.io/latest?base=" +
         baseCurrency +
-        "&to_currency=" +
-        localCurrency +
-        "&apikey=3WJVTZ3CHLY55LZB"
+        "&symbols=" +
+        localCurrency
     );
 
-    let exgRate = parseFloat(
-      forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
-    );
-
+    let exgRate = parseFloat(forex.data["rates"][localCurrency]);
+    console.log(exgRate);
     let localcurrencyprice = basePrice * exgRate;
     let localwallet = wallet * exgRate;
 
@@ -445,14 +425,8 @@ router.post("/confirmsell", async (req, res, next) => {
   }
   console.log(stock);
   // update the WarehouseStock basePrice
-  const qoute = await axios.get(
-    "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
-      req.body.symbol +
-      "&apikey=3WJVTZ3CHLY55LZB"
-  );
 
-  console.log(qoute.data["Global Quote"]["05. price"]);
-  basePrice = parseFloat(qoute.data["Global Quote"]["05. price"]);
+  basePrice = parseFloat(stock.baseValue);
   // if both user and stock exists
   if (user && stock && portfolio) {
     portfolioUnits = portfolio.stockUnits;
@@ -479,16 +453,14 @@ router.post("/confirmsell", async (req, res, next) => {
     }
 
     const forex = await axios.get(
-      "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=" +
+      "https://api.exchangeratesapi.io/latest?base=" +
         baseCurrency +
-        "&to_currency=" +
-        localCurrency +
-        "&apikey=3WJVTZ3CHLY55LZB"
+        "&symbols=" +
+        localCurrency
     );
 
-    let exgRate = parseFloat(
-      forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
-    );
+    let exgRate = parseFloat(forex.data["rates"][localCurrency]);
+    console.log(exgRate);
 
     let localcurrencyprice = basePrice * exgRate;
 
@@ -550,5 +522,12 @@ async function createBuyTransaction(wBasevalue, wUnits, wTotalValue, req) {
 }
 
 async function findUser(useremail) {}
+
+function findElement(arr, propName, propValue) {
+  for (var i = 0; i < arr.length; i++)
+    if (arr[i][propName] == propValue) return arr[i];
+
+  // will return undefined if not found; you could return a default instead
+}
 
 module.exports = router;

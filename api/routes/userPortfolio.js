@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const UserPortfolio = require("../models/userPortfolio");
 const BuySellTransactions = require("../models/buySellTransactions");
+const WareHouseStock = require("../models/warehouseStock");
 const User = require("../models/user");
 const axios = require("axios");
 
@@ -32,43 +33,47 @@ router.post("/status", async (req, res, next) => {
   let userCurrency = req.body.localcurrency;
   let buyAmount = 0;
   let currentAmount = 0;
-
+  let stock;
   try {
-    logs = await BuySellTransactions.find({ emailId: userEmail });
+    let logs = await BuySellTransactions.find({ emailId: userEmail });
+    stock = await WareHouseStock.find();
 
     if (logs) {
       console.log(logs);
 
       for (i = 0; i < logs.length; i++) {
+        
         // get the buy amount and units
         let BA = parseFloat(logs[i].baseCurrencyAmount);
         let bUints = parseFloat(logs[i].units);
         console.log("buyAmount", BA);
 
-        // fetch the realtime price
-        const response = await axios.get(
-          "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
-            logs[i].symbol +
-            "&apikey=3WJVTZ3CHLY55LZB"
-        );
+        // fetch the price from Stock DB
+        // const response = await axios.get(
+        //   "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" +
+        //     logs[i].symbol +
+        //     "&apikey=3WJVTZ3CHLY55LZB"
+        // );
 
-        let basePrice = parseFloat(response.data["Global Quote"]["05. price"]);
+        // fetch the price from Stock DB
+        const stockSymbol = findElement(stock, "symbol", logs[i].symbol);
+        console.log("Stock from Warehouse",stockSymbol["baseValue"]);
+
+        let basePrice = parseFloat(stockSymbol["baseValue"]);
         let cng = basePrice * bUints;
         console.log(cng);
 
         //   fetch exchange rate
         const forex = await axios.get(
-          "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=" +
+          "https://api.exchangeratesapi.io/latest?base=" +
             logs[i].baseCurrency +
-            "&to_currency=" +
-            userCurrency +
-            "&apikey=3WJVTZ3CHLY55LZB"
+            "&symbols=" +
+            userCurrency
         );
+
         console.log(forex.data);
         // get exchange rate
-        let exgRate = parseFloat(
-          forex.data['Realtime Currency Exchange Rate']['5. Exchange Rate']
-        );
+        let exgRate = parseFloat(forex.data["rates"][userCurrency]);
 
         // BA = BA * exgRate;
         cng = cng * exgRate;
@@ -126,5 +131,13 @@ router.post("/status", async (req, res, next) => {
     });
   }
 });
+
+function findElement(arr, propName, propValue) {
+  for (var i=0; i < arr.length; i++)
+    if (arr[i][propName] == propValue)
+      return arr[i];
+
+  // will return undefined if not found; you could return a default instead
+}
 
 module.exports = router;
