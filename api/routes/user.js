@@ -200,6 +200,26 @@ router.get("/", async (req, res, next) => {
   }
 });
 
+// delete account
+router.post("/delete", async (req, res, next) => {
+  let user = await User.findOne({ email: req.params.email });
+  if (user) {
+    let deleteres = await User.deleteOne({ email: req.params.email });
+    if (deleteres) {
+      res.status(200).json({
+        msg: "account deleted"
+      });
+    } else {
+      res.status(500).json({
+        err: "server error"
+      });
+    }
+    res.status(500).json({
+      err: "server error"
+    });
+  }
+});
+
 // custom functions
 function splitName(fullName) {
   var name = [];
