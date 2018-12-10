@@ -42,7 +42,6 @@ router.post("/status", async (req, res, next) => {
       console.log(logs);
 
       for (i = 0; i < logs.length; i++) {
-        
         // get the buy amount and units
         let BA = parseFloat(logs[i].baseCurrencyAmount);
         let bUints = parseFloat(logs[i].units);
@@ -57,7 +56,7 @@ router.post("/status", async (req, res, next) => {
 
         // fetch the price from Stock DB
         const stockSymbol = findElement(stock, "symbol", logs[i].symbol);
-        console.log("Stock from Warehouse",stockSymbol["baseValue"]);
+        console.log("Stock from Warehouse", stockSymbol["baseValue"]);
 
         let basePrice = parseFloat(stockSymbol["baseValue"]);
         let cng = basePrice * bUints;
@@ -92,33 +91,29 @@ router.post("/status", async (req, res, next) => {
       }
       let change = currentAmount - buyAmount;
       let user = await User.findOne({ email: userEmail });
-      if(user){
-          
+      if (user) {
         const forex = await axios.get(
-            "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=" +
-              userCurrency +
-              "&apikey=3WJVTZ3CHLY55LZB"
-          );
-          // console.log(forex.data);
-          // get exchange rate
-          let exgRate = parseFloat(
-            forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
-          );
-          let wallet = parseFloat(user.wallet)* exgRate;
+          "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=" +
+            userCurrency +
+            "&apikey=3WJVTZ3CHLY55LZB"
+        );
+        // console.log(forex.data);
+        // get exchange rate
+        let exgRate = parseFloat(
+          forex.data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
+        );
+        let wallet = parseFloat(user.wallet) * exgRate;
 
         res.status(200).json({
-            total: currentAmount,
-            change: change,
-            balance:wallet
-          });
-      }
-      else{
+          total: currentAmount,
+          change: change,
+          balance: wallet
+        });
+      } else {
         res.status(401).json({
-            message: "Unauthorized"
-          });
+          message: "Unauthorized"
+        });
       }
-
-      
     } else {
       res.status(400).json({
         message: "Portfolio Empty"
@@ -132,10 +127,85 @@ router.post("/status", async (req, res, next) => {
   }
 });
 
+router.post("/details", async (req, res, next) => {
+  let logs, portfolio;
+  let userCurrency = req.body.localcurrency;
+  try {
+    logs = await BuySellTransactions.find({
+      emailId: req.body.email,
+      symbol: req.body.symbol
+    });
+    portfolio = await UserPortfolio.findOne({
+      email: req.body.email,
+      symbol: req.body.symbol
+    });
+  } catch (err) {
+    res.status(500).json({
+      err: err
+    });
+  }
+  console.log(portfolio, logs);
+  let pBaseValue = portfolio.baseValueLast;
+  let pUnits = parseFloat(portfolio.stockUnits);
+  pUnits = Number(Number(pUnits).toFixed(10));
+
+  let purchasedUnits = 0;
+  let soldUnits = 0;
+  let purchaseAmount = 0;
+  let soldAmount = 0;
+
+  for (i = 0; i < logs.length; i++) {
+    if (logs[i].type == "buy") {
+      purchasedUnits += parseFloat(logs[i].units);
+      purchaseAmount += parseFloat(logs[i].baseCurrencyAmount);
+    } else if (logs[i].type == "sell") {
+      soldUnits += parseFloat(logs[i].units);
+      soldAmount += parseFloat(logs[i].baseCurrencyAmount);
+    }
+  }
+
+  let logUnits = purchasedUnits - soldUnits;
+  logUnits = Number(Number(logUnits).toFixed(10));
+
+  console.log(pUnits, logUnits);
+  let equity = 0;
+  let boughtAt = 0;
+
+  if (logUnits > 0 && logUnits == pUnits) {
+    //   fetch exchange rate
+    const forex = await axios.get(
+      "https://api.exchangeratesapi.io/latest?base=" +
+        portfolio.baseCurrency +
+        "&symbols=" +
+        userCurrency
+    );
+
+    console.log(forex.data);
+    // get exchange rate
+    let exgRate = parseFloat(forex.data["rates"][userCurrency]);
+
+    equity = parseFloat(portfolio.baseValueLast) * exgRate;
+    equity = Number(Number(equity).toFixed(4));
+    boughtAt = (purchaseAmount - soldAmount)/pUnits;
+    boughtAt = boughtAt *exgRate;
+    boughtAt = Number(Number(boughtAt).toFixed(4));
+    let stat = equity - boughtAt;
+    res.status(200).json({
+      yourShares: logUnits,
+      equity: equity,
+      boughtAt:boughtAt,
+      status:stat
+    });
+  } else {
+    res.status(500).json({
+      err: "noStock"
+    });
+  }
+});
+
 function findElement(arr, propName, propValue) {
-  for (var i=0; i < arr.length; i++)
-    if (arr[i][propName] == propValue)
-      return arr[i];
+  for (var i = 0; i < arr.length; i++)
+    if (arr[i][propName] == propValue) return arr[i];
 
   // will return undefined if not found; you could return a default instead
 }

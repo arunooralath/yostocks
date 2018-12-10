@@ -217,7 +217,7 @@ router.post("/buystock", async (req, res, next) => {
     if (user && amountBC <= user.wallet) {
       wUnits = stock.units; //WarehouseStock units
       wBasevalue = stock.baseValue;
-      var buyUnits = wBasevalue / amountBC; //units to be bought
+      var buyUnits = amountBC /wBasevalue; //units to be bought
 
       // if stock quantity available
       if (buyUnits <= wUnits) {
