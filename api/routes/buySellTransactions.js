@@ -8,9 +8,10 @@ const _ = require("lodash");
 // fetch all transactions by email + symbol
 router.post("/alltransactions", async (req, res, next) => {
   var transactions = await BuySellTransactions.find({
-    email: req.body.email,
+    emailId: req.body.email,
     symbol: req.body.symbol
   });
+  console.log(req.body,transactions);
   res.send(transactions);
 });
 
@@ -52,5 +53,9 @@ router.post("/lossgain", async (req, res, next) => {
     });
   }
 });
+
+router.post("/list",async(req,res,next)=>{
+
+})
 
 module.exports = router;
