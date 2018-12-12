@@ -114,6 +114,7 @@ router.delete("/:userId", (req, res, next) => {
     });
 });
 
+// update profile with password
 router.post("/updateProfile", async (req, res, next) => {
   console.log("update profile", req.body);
   let user = await User.findOne({ email: req.body.email });
@@ -146,6 +147,37 @@ router.post("/updateProfile", async (req, res, next) => {
   } else {
     res.status(500).json({
       error: "No user Found"
+    });
+  }
+});
+
+// just update account
+router.post("/updateAccount", async (req, res, next) => {
+  console.log("update Account", req.body);
+  let user = await User.findOne({ email: req.body.email });
+  if (user) {
+    try {
+      let result = User.updateOne(
+        { email: req.body.email },
+        {
+          $set: {
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
+            age: req.body.age
+          }
+        }
+      );
+      res.status(200).json({
+        message: "Account Updated"
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: err
+      });
+    }
+  } else {
+    res.status(400).json({
+      message: "no such user"
     });
   }
 });
@@ -202,9 +234,10 @@ router.get("/", async (req, res, next) => {
 
 // delete account
 router.post("/delete", async (req, res, next) => {
-  let user = await User.findOne({ email: req.params.email });
+  console.log(req.body);
+  let user = await User.findOne({ email: req.body.email });
   if (user) {
-    let deleteres = await User.deleteOne({ email: req.params.email });
+    let deleteres = await User.deleteOne({ email: req.body.email });
     if (deleteres) {
       res.status(200).json({
         msg: "account deleted"
@@ -214,8 +247,9 @@ router.post("/delete", async (req, res, next) => {
         err: "server error"
       });
     }
-    res.status(500).json({
-      err: "server error"
+  } else {
+    res.status(400).json({
+      err: "No such User"
     });
   }
 });
