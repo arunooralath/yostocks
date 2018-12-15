@@ -3,6 +3,8 @@ const app = express();
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const utils = require("./api/utils/utils");
+const cronJob = require("./api/utils/cronJob")
 
 // user routes
 const userRoutes = require("./api/routes/user");
@@ -12,8 +14,9 @@ const tradeRoutes = require("./api/routes/buysell");
 const userPortfolio = require("./api/routes/userPortfolio");
 const userLogs = require("./api/routes/buySellTransactions");
 const userInterest = require("./api/routes/userInterest");
+const stockData = require("./api/routes/stockData");
 
-// const cronJob = require("./api/utils/cronJob")
+
 // var dotenv = require('dotenv');
 // dotenv.load();
 
@@ -39,6 +42,7 @@ app.use("/trade", tradeRoutes);
 app.use("/portfolio", userPortfolio);
 app.use("/logs", userLogs);
 app.use("/interest", userInterest);
+app.use("/stockData", stockData);
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
@@ -59,6 +63,9 @@ app.use((req, res, next) => {
   });
 });
 
-// cronJob.start();
+ cronJob.start();
+
+// start cronJob for updating Stock Closing Rates at LA time
+utils.start();
 
 module.exports = app;

@@ -155,26 +155,30 @@ router.post("/updateProfile", async (req, res, next) => {
 router.post("/updateAccount", async (req, res, next) => {
   console.log("update Account", req.body);
   let user = await User.findOne({ email: req.body.email });
+  console.log(user);
   if (user) {
-    try {
-      let result = User.updateOne(
-        { email: req.body.email },
-        {
-          $set: {
-            firstName: req.body.firstName,
-            lastName: req.body.lastName,
-            age: req.body.age
-          }
+    User.updateOne(
+      { email: req.body.email },
+      {
+        $set: {
+          firstName: req.body.firstName,
+          lastName: req.body.lastName,
+          age: req.body.age
         }
-      );
-      res.status(200).json({
-        message: "Account Updated"
+      }
+    )
+      .exec()
+      .then(result => {
+        if (result) {
+          res.status(201).json({
+            message: "Account Updated"
+          });
+        } else {
+          res.status(500).json({
+            err: "Server Error"
+          });
+        }        
       });
-    } catch (err) {
-      res.status(500).json({
-        error: err
-      });
-    }
   } else {
     res.status(400).json({
       message: "no such user"
