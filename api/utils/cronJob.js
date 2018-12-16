@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const axios = require("axios");
 const _ = require("lodash");
 const WareHouseStock = require("../models/warehouseStock");
+const UserPortfolio = require("../models/userPortfolio");
 
 module.exports = {
   start: function() {
@@ -25,7 +26,9 @@ module.exports = {
 
 async function updateStocks() {
   let stockList = [];
+  let symbolList = [];
   let stocks = await WareHouseStock.find();
+  let userPortfolio;
   for (i = 0; i < stocks.length; i++) {
     stockList.push(stocks[i].symbol);
   }
@@ -47,10 +50,67 @@ async function updateStocks() {
         }
       ])
     );
+
+    // create symbolList Array of realtime prices
     qoute.forEach(function(value, i) {
-      console.log(qoute[i].symbol);
-      console.log(qoute[i].price)
+      // console.log(qoute[i].symbol);
+      // console.log(qoute[i].price)
+      let qouteObj = {
+        symbol: qoute[i].symbol,
+        price: qoute[i].price
+      };
+      symbolList.push(qouteObj);
+      // console.log(qouteObj);
     });
+
+    // loop to iterate WareHouseStock and update values
+    for (i = 0; i < stocks.length; i++) {
+      let rltPrice; //realtime price
+      let baseValue, units, totalValue, preBaseValue; //variables for warehousestock
+
+      baseValue = stocks[i].baseValue;
+      units = parseFloat(stocks[i].units);
+      totalValue = parseFloat(stocks[i].totalValue);
+      preBaseValue = baseValue;
+      let obj = symbolList.find(o => o.symbol == stocks[i].symbol);
+      // console.log(stocks[i].symbol, obj);
+      baseValue = parseFloat(obj.price);
+      totalValue = baseValue * units;
+      // console.log(baseValue, preBaseValue, units, totalValue);
+
+      // update WareHouseStock Table with realtime value
+      await WareHouseStock.updateOne(
+        { symbol: stocks[i].symbol },
+        {
+          $set: {
+            baseValue: baseValue,
+            preBaseValue: preBaseValue,
+            totalValue: totalValue
+          }
+        }
+      );
+    }
+
+    // fetch userPortfolio from DB
+    userPortfolio = await UserPortfolio.find();
+
+    // for (i = 0; i < userPortfolio.length; i++) {
+    //   console.log(userPortfolio[i].symbol);
+    //   let obj = symbolList.find(o => o.symbol == userPortfolio[i].symbol);
+
+    // }
+
+    for (i = 0; i < symbolList.length; i++) {
+      var symbol = symbolList[i].symbol.toString();
+      await UserPortfolio.updateMany(
+        { symbol: symbol },
+        {
+          $set: {
+            baseValueLast: symbolList[i].price
+          }
+        }
+      );
+    }
   } catch (err) {
     console.log(err);
   }
