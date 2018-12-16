@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const productHistorySchema = mongoose.Schema({
   _id: mongoose.Schema.Types.ObjectId,
   symbol: { type: String, required: true },
+  price: { type: Number, required: true },
   date: { type: String, required: true },
   currency: { type: String, required: true },
   EUR: { type: String, required: true },

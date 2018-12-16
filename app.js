@@ -63,7 +63,7 @@ app.use((req, res, next) => {
   });
 });
 
- cronJob.start();
+//cronJob.start();
 
 // start cronJob for updating Stock Closing Rates at LA time
 utils.start();

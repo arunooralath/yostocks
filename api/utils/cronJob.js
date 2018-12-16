@@ -24,6 +24,7 @@ module.exports = {
   }
 };
 
+
 async function updateStocks() {
   let stockList = [];
   let symbolList = [];
