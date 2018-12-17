@@ -4,8 +4,9 @@ const yahooFinance = require("yahoo-finance");
 const BuySellTransactions = require("../models/buySellTransactions");
 const ProductHistory = require("../models/productHistory");
 
-router.post("/statusPortfolio", async (req, res, next) => {
+router.post("/portfolioChart", async (req, res, next) => {
   let logs;
+  let localCurrency = req.body.localCurrency;
   try {
     logs = await BuySellTransactions.find({ emailId: req.body.email }).sort({
       date: 1
@@ -22,36 +23,14 @@ router.post("/statusPortfolio", async (req, res, next) => {
 
   if (logs) {
     portfolioSpend = 0;
-    
+
     // iterate the logs
     for (i = 0; i < logs.length; i++) {
       gain = 0;
-      // add symbol to object array
-      var foundIndex = productList.findIndex(x => x.symbol == logs[i].symbol);
-
-      // if product found in the list
-      if (foundIndex >= 0) {
-        if (logs[i].type == "buy") {
-          productList[foundIndex].units += parseFloat(logs[i].units);
-        } else if (logs[i].type == "sell") {
-          // console.log("sell**");
-          productList[foundIndex].units -= parseFloat(logs[i].units);
-        }
-      } else {
-        var dictObject = {
-          symbol: logs[i].symbol,
-          units: logs[i].units,
-          price: logs[i].basePrice
-        };
-        // console.log("add to dict", dictObject);
-        productList.push(dictObject);
-      }
-      // console.log(productList);
+      eDate = await formatDateYYYYmmDD(logs[i].date);
 
       if (i == 0) {
-        sDate = logs[i].date;
-        // get current portfolio status
-        // function currentDatePortfolio();
+        sDate = await formatDateYYYYmmDD(logs[i].date);
 
         // calculate amount Spend
         if (logs[i].type == "buy") {
@@ -61,17 +40,27 @@ router.post("/statusPortfolio", async (req, res, next) => {
         }
 
         var currentDatePortfolio = 0;
-        // console.log(currentDatePortfolio, sDate);       
+        // console.log(currentDatePortfolio, sDate);
 
-        for (const element of productList) {
-          console.log(element);
-          var portfolioHistoryValue =  await getHistory(sDate,logs[i].symbol);
-          currentDatePortfolio +=
-            parseFloat(element.units) * parseFloat(portfolioHistoryValue);
-            console.log("---",currentDatePortfolio)
-        }
+        // for (const element of productList) {
+        //   console.log(element);
+        //   var portfolioHistoryValue =  await getHistory(sDate,logs[i].symbol);
+        //   currentDatePortfolio +=
+        //     parseFloat(element.units) * parseFloat(portfolioHistoryValue);
+        //     console.log("---",currentDatePortfolio);
+        // }
 
-        console.log(currentDatePortfolio,portfolioSpend);
+        // get current portfolio status
+        var portfolioHistoryValue = await getHistory(
+          sDate,
+          logs[i].symbol,
+          localCurrency
+        );
+        currentDatePortfolio +=
+          parseFloat(logs[i].units) * parseFloat(portfolioHistoryValue);
+        // console.log("---", currentDatePortfolio);
+
+        // console.log(currentDatePortfolio, portfolioSpend);
         gain = currentDatePortfolio - portfolioSpend;
 
         var datesObj = {
@@ -80,8 +69,199 @@ router.post("/statusPortfolio", async (req, res, next) => {
           portfolioCurrent: currentDatePortfolio,
           gain: gain
         };
-        console.log(datesObj);
+        // console.log(datesObj);
+        datesArray.push(datesObj);
+        sDate = eDate;
+
+        //  add to productList array
+        var dictObject = {
+          symbol: logs[i].symbol,
+          units: logs[i].units,
+          price: logs[i].basePrice
+        };
+        // console.log("add to dict", dictObject);
+        productList.push(dictObject);
+      } else {
+        // if not first transaction
+        if (eDate == sDate) {
+          // console.log("edate", eDate, " sdate", sDate, logs[i].symbol);
+
+          // add symbol to object array -----------------------------------------------
+          var foundIndex = productList.findIndex(
+            x => x.symbol == logs[i].symbol
+          );
+
+          // if product found in the list
+          if (foundIndex >= 0) {
+            if (logs[i].type == "buy") {
+              productList[foundIndex].units += parseFloat(logs[i].units);
+            } else if (logs[i].type == "sell") {
+              // console.log("sell**");
+              productList[foundIndex].units -= parseFloat(logs[i].units);
+            }
+          } else {
+            var dictObject = {
+              symbol: logs[i].symbol,
+              units: logs[i].units,
+              price: logs[i].basePrice
+            };
+            // console.log("add to dict", dictObject);
+            productList.push(dictObject);
+          }
+          // console.log(productList);---------------------------------------------------
+
+          // calculate amount Spend
+          if (logs[i].type == "buy") {
+            portfolioSpend += parseFloat(logs[i].localCurrencyAmount);
+          } else if (logs[i].type == "sell") {
+            portfolioSpend -= parseFloat(logs[i].localCurrencyAmount);
+          }
+
+          var currentDatePortfolio = 0;
+
+          // calculate currentDatePortfolio
+          for (const element of productList) {
+            // console.log(element);
+            var portfolioHistoryValue = await getHistory(
+              sDate,
+              logs[i].symbol,
+              localCurrency
+            );
+            currentDatePortfolio +=
+              parseFloat(element.units) * parseFloat(portfolioHistoryValue);
+            // console.log("---", currentDatePortfolio);
+          }
+          // calculate gain
+          gain = currentDatePortfolio - portfolioSpend;
+
+          // find the dateObject from datesArray and change the values
+
+          let objDates = datesArray.find(o => o.date === eDate);
+          // console.log(objDates);
+          objDates.portfolioSpend = portfolioSpend;
+          (objDates.portfolioCurrent = currentDatePortfolio),
+            (objDates.gain = gain);
+
+          // var datesObj = {
+          //   date: sDate,
+          //   portfolioSpend: portfolioSpend,
+          //   portfolioCurrent: currentDatePortfolio,
+          //   gain: gain
+          // };
+          // console.log(datesObj);
+          sDate = eDate;
+        }
+        if (eDate !== sDate) {
+          // console.log("edate", eDate, " sdate", sDate, logs[i].symbol);
+          // console.log("eDate !== sDate");
+
+          // // calculate amount Spend
+          // if (logs[i].type == "buy") {
+          //   portfolioSpend += parseFloat(logs[i].localCurrencyAmount);
+          // } else if (logs[i].type == "sell") {
+          //   portfolioSpend -= parseFloat(logs[i].localCurrencyAmount);
+          // }
+          // generate data between startDate and endDate
+          let startDate = await getNextDay(sDate);
+          while (startDate !== eDate) {
+            // code block to be executed
+            currentDatePortfolio = 0;
+
+            for (const element of productList) {
+              // console.log(element);
+              var portfolioHistoryValue = await getHistory(
+                startDate,
+                element.symbol,
+                localCurrency
+              );
+              currentDatePortfolio +=
+                parseFloat(element.units) * parseFloat(portfolioHistoryValue);
+            }
+
+            gain = currentDatePortfolio - portfolioSpend;
+            // console.log(startDate, portfolioSpend, currentDatePortfolio);
+            var datesObj = {
+              date: startDate.toString(),
+              portfolioSpend: portfolioSpend,
+              portfolioCurrent: currentDatePortfolio,
+              gain: gain
+            };
+            // console.log(datesObj);
+            datesArray.push(datesObj);
+
+            startDate = await getNextDay(startDate);
+          }
+          // fetch data of edate
+          if (startDate == eDate) {
+            // add symbol to object array -----------------------------------------------
+            var foundIndex = productList.findIndex(
+              x => x.symbol == logs[i].symbol
+            );
+
+            // if product found in the list
+            if (foundIndex >= 0) {
+              if (logs[i].type == "buy") {
+                productList[foundIndex].units += parseFloat(logs[i].units);
+              } else if (logs[i].type == "sell") {
+                // console.log("sell**");
+                productList[foundIndex].units -= parseFloat(logs[i].units);
+              }
+            } else {
+              var dictObject = {
+                symbol: logs[i].symbol,
+                units: logs[i].units,
+                price: logs[i].basePrice
+              };
+              // console.log("add to dict", dictObject);
+              productList.push(dictObject);
+            }
+            // console.log(productList);---------------------------------------------------
+
+            // calculate amount Spend
+            if (logs[i].type == "buy") {
+              portfolioSpend += parseFloat(logs[i].localCurrencyAmount);
+            } else if (logs[i].type == "sell") {
+              portfolioSpend -= parseFloat(logs[i].localCurrencyAmount);
+            }
+
+            var currentDatePortfolio = 0;
+
+            // calculate currentDatePortfolio
+            for (const element of productList) {
+              // console.log(element);
+              var portfolioHistoryValue = await getHistory(
+                startDate,
+                logs[i].symbol,
+                localCurrency
+              );
+              currentDatePortfolio +=
+                parseFloat(element.units) * parseFloat(portfolioHistoryValue);
+              // console.log("---", currentDatePortfolio);
+            }
+            // calculate gain
+            gain = currentDatePortfolio - portfolioSpend;
+
+            var datesObj = {
+              date: eDate,
+              portfolioSpend: portfolioSpend,
+              portfolioCurrent: currentDatePortfolio,
+              gain: gain
+            };
+            // console.log(datesObj);
+            datesArray.push(datesObj);
+          }
+
+          sDate = startDate;
+        }
       }
+    }
+    // console.log(datesArray.reverse());
+    try {
+      res.send(datesArray.reverse());
+    } catch (err) {
+      res.status(500).json({
+        message: "No Portfolio Transactions"
+      });
     }
   } else {
     res.status(400).json({
@@ -271,29 +451,39 @@ function formatDate(currentDate) {
   return monthDateYear;
 }
 
-async function formatDateYYYYmmDD(date){  
-    
-        var d = new Date(date),
-            month = '' + (d.getMonth() + 1),
-            day = '' + d.getDate(),
-            year = d.getFullYear();
-    
-        if (month.length < 2) month = '0' + month;
-        if (day.length < 2) day = '0' + day;
-    
-        return [year, month, day].join('-');
-   
+// function to get date of nextDay
+async function getNextDay(day) {
+  var nextDay = new Date(day);
+  nextDay.setDate(nextDay.getDate() + 1);
+  // console.log("**",await formatDateYYYYmmDD(nextDay));
+  return await formatDateYYYYmmDD(nextDay);
 }
 
-async function getHistory(startDate, symbol){
+// function to format date YYYYmmDD
+async function formatDateYYYYmmDD(date) {
+  var d = new Date(date),
+    month = "" + (d.getMonth() + 1),
+    day = "" + d.getDate(),
+    year = d.getFullYear();
 
+  if (month.length < 2) month = "0" + month;
+  if (day.length < 2) day = "0" + day;
+
+  return [year, month, day].join("-");
+}
+
+// function to return product history prices
+async function getHistory(startDate, symbol, localCurrency) {
   var date = await formatDateYYYYmmDD(startDate);
-  let historyResult = await ProductHistory.findOne({symbol:symbol,date:date});
-  let currentAmount = parseFloat(historyResult.price) * parseFloat(historyResult.DKK);
-  console.log("Current Amount",currentAmount);
+  let historyResult = await ProductHistory.findOne({
+    symbol: symbol,
+    date: date
+  });
+
+  let currentAmount =
+    parseFloat(historyResult.price) * parseFloat(historyResult[localCurrency]);
+  // console.log("Current Amount", currentAmount);
   return currentAmount;
-
 }
-
 
 module.exports = router;
