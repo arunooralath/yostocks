@@ -3,7 +3,7 @@ const app = express();
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const utils = require("./api/utils/utils");
+const historyJob = require("./api/utils/historyJob");
 const cronJob = require("./api/utils/cronJob")
 
 // user routes
@@ -66,6 +66,6 @@ app.use((req, res, next) => {
 //cronJob.start();
 
 // start cronJob for updating Stock Closing Rates at LA time
-utils.start();
+// historyJob.start();
 
 module.exports = app;

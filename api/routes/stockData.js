@@ -2,6 +2,93 @@ const express = require("express");
 const router = express.Router();
 const yahooFinance = require("yahoo-finance");
 const BuySellTransactions = require("../models/buySellTransactions");
+const ProductHistory = require("../models/productHistory");
+
+router.post("/statusPortfolio", async (req, res, next) => {
+  let logs;
+  try {
+    logs = await BuySellTransactions.find({ emailId: req.body.email }).sort({
+      date: 1
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err
+    });
+  }
+  let sDate, eDate;
+  let datesArray = [];
+  let productList = [];
+  let portfolioSpend, portfolioCurrent, gain;
+
+  if (logs) {
+    portfolioSpend = 0;
+    
+    // iterate the logs
+    for (i = 0; i < logs.length; i++) {
+      gain = 0;
+      // add symbol to object array
+      var foundIndex = productList.findIndex(x => x.symbol == logs[i].symbol);
+
+      // if product found in the list
+      if (foundIndex >= 0) {
+        if (logs[i].type == "buy") {
+          productList[foundIndex].units += parseFloat(logs[i].units);
+        } else if (logs[i].type == "sell") {
+          // console.log("sell**");
+          productList[foundIndex].units -= parseFloat(logs[i].units);
+        }
+      } else {
+        var dictObject = {
+          symbol: logs[i].symbol,
+          units: logs[i].units,
+          price: logs[i].basePrice
+        };
+        // console.log("add to dict", dictObject);
+        productList.push(dictObject);
+      }
+      // console.log(productList);
+
+      if (i == 0) {
+        sDate = logs[i].date;
+        // get current portfolio status
+        // function currentDatePortfolio();
+
+        // calculate amount Spend
+        if (logs[i].type == "buy") {
+          portfolioSpend += parseFloat(logs[i].localCurrencyAmount);
+        } else if (logs[i].type == "sell") {
+          portfolioSpend -= parseFloat(logs[i].localCurrencyAmount);
+        }
+
+        var currentDatePortfolio = 0;
+        // console.log(currentDatePortfolio, sDate);       
+
+        for (const element of productList) {
+          console.log(element);
+          var portfolioHistoryValue =  await getHistory(sDate,logs[i].symbol);
+          currentDatePortfolio +=
+            parseFloat(element.units) * parseFloat(portfolioHistoryValue);
+            console.log("---",currentDatePortfolio)
+        }
+
+        console.log(currentDatePortfolio,portfolioSpend);
+        gain = currentDatePortfolio - portfolioSpend;
+
+        var datesObj = {
+          date: sDate,
+          portfolioSpend: portfolioSpend,
+          portfolioCurrent: currentDatePortfolio,
+          gain: gain
+        };
+        console.log(datesObj);
+      }
+    }
+  } else {
+    res.status(400).json({
+      message: "No Portfolio Transactions"
+    });
+  }
+});
 
 router.post("/portfolioStatus", async (req, res, next) => {
   let logs;
@@ -183,5 +270,30 @@ function formatDate(currentDate) {
   var monthDateYear = month + 1 + "-" + date + "-" + year;
   return monthDateYear;
 }
+
+async function formatDateYYYYmmDD(date){  
+    
+        var d = new Date(date),
+            month = '' + (d.getMonth() + 1),
+            day = '' + d.getDate(),
+            year = d.getFullYear();
+    
+        if (month.length < 2) month = '0' + month;
+        if (day.length < 2) day = '0' + day;
+    
+        return [year, month, day].join('-');
+   
+}
+
+async function getHistory(startDate, symbol){
+
+  var date = await formatDateYYYYmmDD(startDate);
+  let historyResult = await ProductHistory.findOne({symbol:symbol,date:date});
+  let currentAmount = parseFloat(historyResult.price) * parseFloat(historyResult.DKK);
+  console.log("Current Amount",currentAmount);
+  return currentAmount;
+
+}
+
 
 module.exports = router;
