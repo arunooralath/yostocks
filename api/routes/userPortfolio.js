@@ -130,7 +130,7 @@ router.post("/status", async (req, res, next) => {
 router.post("/details", async (req, res, next) => {
   let logs, portfolio;
   let userCurrency = req.body.localcurrency;
-  console.log(req.body);
+  console.log("portfolio details -body ",req.body);
   try {
     logs = await BuySellTransactions.find({
       emailId: req.body.email,
