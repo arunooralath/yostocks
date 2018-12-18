@@ -177,7 +177,7 @@ router.post("/updateAccount", async (req, res, next) => {
           res.status(500).json({
             err: "Server Error"
           });
-        }        
+        }
       });
   } else {
     res.status(400).json({
@@ -261,15 +261,22 @@ router.post("/delete", async (req, res, next) => {
 // custom functions
 function splitName(fullName) {
   var name = [];
-  console.log(this.fullName);
+
   name[0] = fullName
     .split(" ")
     .slice(0, -1)
     .join(" ");
+  console.log("1", name[0]);
   name[1] = fullName
     .split(" ")
     .slice(-1)
     .join(" ");
+  console.log(name[1]);
+  if (name[0] === "") {
+    name[0] = name[1];
+    name[1]="";
+    //...
+  }
   return name;
 }
 

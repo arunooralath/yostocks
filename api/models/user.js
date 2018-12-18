@@ -10,7 +10,7 @@ const userSchema = mongoose.Schema({
     },
     password: { type: String, required: true },
     firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
+    lastName: { type: String },
     age:{type: Number,default:"18"},
     countryCode:{ type: String, required: true },
     date: { type: Date, default: Date.now },
