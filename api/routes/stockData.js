@@ -20,7 +20,7 @@ router.post("/portfolioChart", async (req, res, next) => {
   let datesArray = [];
   let productList = [];
   let portfolioSpend, portfolioCurrent, gain;
-
+  let currentDate = await formatDateYYYYmmDD(new Date());
   if (logs) {
     portfolioSpend = 0;
 
@@ -141,14 +141,6 @@ router.post("/portfolioChart", async (req, res, next) => {
           objDates.portfolioSpend = portfolioSpend;
           (objDates.portfolioCurrent = currentDatePortfolio),
             (objDates.gain = gain);
-
-          // var datesObj = {
-          //   date: sDate,
-          //   portfolioSpend: portfolioSpend,
-          //   portfolioCurrent: currentDatePortfolio,
-          //   gain: gain
-          // };
-          // console.log(datesObj);
           sDate = eDate;
         }
         if (eDate !== sDate) {
@@ -255,6 +247,40 @@ router.post("/portfolioChart", async (req, res, next) => {
         }
       }
     }
+
+    // incement the date and generate the chart till currentdate
+    sDate = await getNextDay(sDate);
+    if (currentDate !== sDate) {
+      console.log(currentDate, sDate);
+      while (sDate !== currentDate) {
+        // code block to be executed
+        currentDatePortfolio = 0;
+
+        for (const element of productList) {
+          // console.log(element);
+          var portfolioHistoryValue = await getHistory(
+            sDate,
+            element.symbol,
+            localCurrency
+          );
+          currentDatePortfolio +=
+            parseFloat(element.units) * parseFloat(portfolioHistoryValue);
+        }
+
+        gain = currentDatePortfolio - portfolioSpend;
+        // console.log(startDate, portfolioSpend, currentDatePortfolio);
+        var datesObj = {
+          date: sDate.toString(),
+          portfolioSpend: portfolioSpend,
+          portfolioCurrent: currentDatePortfolio,
+          gain: gain
+        };
+        // console.log(datesObj);
+        datesArray.push(datesObj);
+
+        sDate = await getNextDay(sDate);
+      }
+    }
     // console.log(datesArray.reverse());
     try {
       res.send(datesArray.reverse());
@@ -266,98 +292,6 @@ router.post("/portfolioChart", async (req, res, next) => {
   } else {
     res.status(400).json({
       message: "No Portfolio Transactions"
-    });
-  }
-});
-
-router.post("/portfolioStatus", async (req, res, next) => {
-  let logs;
-  try {
-    // fetch BuySellTransactions
-    logs = await BuySellTransactions.find({ emailId: req.body.email }).sort({
-      date: 1
-    });
-
-    if (logs) {
-      // // get startDate
-      // var startDate = new Date(
-      //   new Date().setFullYear(new Date().getFullYear() - 1)
-      // );
-      // // get endDate
-      // var endDate = new Date(getCurrentDate());
-
-      // // generate dates
-      // var dateArray = getDates(startDate, endDate);
-
-      // Symbols with units as key pair
-      let dict = [];
-      let datesArray = [];
-      let sDate, eDate;
-      let pAmount = 0;
-      let currentAmount;
-
-      // iterate transactions
-      for (i = 0; i < logs.length; i++) {
-        let smbl = logs[i].symbol;
-        eDate = formatDate(logs[i].date);
-        // add symbol to object array
-        var foundIndex = dict.findIndex(x => x.symbol == smbl);
-
-        if (foundIndex >= 0) {
-          // console.log(logs[i].type);
-          if (logs[i].type == "buy") {
-            dict[foundIndex].units += parseFloat(logs[i].units);
-          } else if (logs[i].type == "sell") {
-            console.log("sell**");
-            var units =
-              parseFloat(logs[i].units) - parseFloat(dict[foundIndex].units);
-            dict[foundIndex].units -= parseFloat(logs[i].units);
-          }
-          // console.log(dict[foundIndex]);
-        } else {
-          var dictObject = {
-            symbol: smbl,
-            units: logs[i].units,
-            price: logs[i].basePrice
-          };
-          // console.log("add to dict", dictObject);
-          dict.push(dictObject);
-        }
-
-        // set the start date and end date to same if i=0;
-        if (i == 0) {
-          // define startDate and endDate
-          sDate = formatDate(logs[i].date);
-        }
-
-        let realTimePrice = 100;
-        let exchangeRate;
-
-        if (sDate == eDate) {
-          // create the entry
-          // add portfolioAmount to the value in existing Date
-          pAmount += parseFloat(logs[i].localCurrencyAmount);
-          let dateObject = {
-            date: eDate,
-            portfolioAmount: pAmount,
-            currentAmount: currentAmount
-          };
-          datesArray.push(dateObject);
-        } else {
-          let dateObject = {
-            date: eDate,
-            realTimePrice: realTimePrice
-          };
-          datesArray.push(dateObject);
-          sDate = formatDate(logs[i].date);
-        }
-      }
-
-      res.send(datesArray);
-    }
-  } catch (err) {
-    res.status(500).json({
-      error: err
     });
   }
 });
@@ -377,32 +311,18 @@ router.get("/:symbol", async (req, res, next) => {
   //       });
   //     }
   //   );
-  console.log(getCurrentDate());
 
-  var endDate = new Date(getCurrentDate());
-  console.log(endDate);
-
-  var startDate = new Date(
-    new Date().setFullYear(new Date().getFullYear() - 1)
-  );
-
-  console.log("startDate", startDate);
-
-  var dates = getDates(startDate, endDate);
-
-  // console.log(dates);
-
-  /*yahooFinance.quote(
+  yahooFinance.quote(
     {
       symbol: req.params.symbol,
-      modules: ["financialData"] // see the docs for the full list
+      modules: ['financialData' , 'earnings'] // see the docs for the full list
     },
     function(err, quotes) {
       res.status(200).json({
         quotes: quotes
       });
     }
-  );*/
+  );
 });
 
 // get current date
