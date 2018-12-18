@@ -45,7 +45,7 @@ router.post("/status", async (req, res, next) => {
         // get the buy amount and units
         let BA = parseFloat(logs[i].baseCurrencyAmount);
         let bUints = parseFloat(logs[i].units);
-        console.log("buyAmount", BA);
+        // console.log("buyAmount", BA);
 
         // fetch the price from Stock DB
         // const response = await axios.get(
@@ -56,11 +56,11 @@ router.post("/status", async (req, res, next) => {
 
         // fetch the price from Stock DB
         const stockSymbol = findElement(stock, "symbol", logs[i].symbol);
-        console.log("Stock from Warehouse", stockSymbol["baseValue"]);
+        // console.log("Stock from Warehouse", stockSymbol["baseValue"]);
 
         let basePrice = parseFloat(stockSymbol["baseValue"]);
         let cng = basePrice * bUints;
-        console.log(cng);
+        // console.log(cng);
 
         //   fetch exchange rate
         const forex = await axios.get(
@@ -70,23 +70,23 @@ router.post("/status", async (req, res, next) => {
             userCurrency
         );
 
-        console.log(forex.data);
+        // console.log(forex.data);
         // get exchange rate
         let exgRate = parseFloat(forex.data["rates"][userCurrency]);
 
         // BA = BA * exgRate;
         cng = cng * exgRate;
-        console.log(BA, cng);
+        // console.log(BA, cng);
 
         console.log("------type-----", logs[i].type);
         if (logs[i].type == "buy") {
           buyAmount += BA;
           currentAmount += cng;
-          console.log("buy", buyAmount, currentAmount);
+          // console.log("buy", buyAmount, currentAmount);
         } else if (logs[i].type == "sell") {
           buyAmount -= BA;
           currentAmount -= cng;
-          console.log("sell", buyAmount, currentAmount);
+          // console.log("sell", buyAmount, currentAmount);
         }
       }
       let change = currentAmount - buyAmount;
@@ -130,6 +130,7 @@ router.post("/status", async (req, res, next) => {
 router.post("/details", async (req, res, next) => {
   let logs, portfolio;
   let userCurrency = req.body.localcurrency;
+  console.log(req.body);
   try {
     logs = await BuySellTransactions.find({
       emailId: req.body.email,

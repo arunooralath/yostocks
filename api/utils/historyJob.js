@@ -100,7 +100,7 @@ async function updateHistory() {
         SEK: frxRes.data.rates.SEK,
         DKK: frxRes.data.rates.DKK
       });
-    //   let result = await history.save();
+       let result = await history.save();
       console.log(history);
     }
   } catch (err) {
