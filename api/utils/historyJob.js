@@ -9,8 +9,8 @@ const utils = require("../utils/utils");
 module.exports = {
   start: function() {
     // console.log("Start - Update History Job");
-    new CronJob(
-      "0 */1 * * * *",
+    new CronJob(      
+      "0 * 19 * * *",
       function() {
         console.log("You will see this message at 13:07 LA TimeZone");
         var history = updateHistory();
