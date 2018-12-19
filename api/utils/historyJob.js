@@ -12,7 +12,7 @@ module.exports = {
     new CronJob(      
       "0 * 19 * * *",
       function() {
-        console.log("You will see this message at 13:07 LA TimeZone");
+        console.log("Add history values to DB");
         var history = updateHistory();
       },
       null,

@@ -16,12 +16,13 @@ router.post("/portfolioChart", async (req, res, next) => {
       error: err
     });
   }
+  console.log(logs);
   let sDate, eDate;
   let datesArray = [];
   let productList = [];
   let portfolioSpend, portfolioCurrent, gain;
   let currentDate = await formatDateYYYYmmDD(new Date());
-  if (logs) {
+  if (logs.length > 0) {
     portfolioSpend = 0;
 
     // iterate the logs
@@ -398,7 +399,7 @@ async function formatDateYYYYmmDD(date) {
 // function to return product history prices
 async function getHistory(startDate, symbol, localCurrency) {
   var date = await formatDateYYYYmmDD(startDate);
-  console.log(date);
+  // console.log(date);
   let historyResult = await ProductHistory.findOne({
     symbol: symbol,
     date: date

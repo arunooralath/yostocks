@@ -15,6 +15,7 @@ const userPortfolio = require("./api/routes/userPortfolio");
 const userLogs = require("./api/routes/buySellTransactions");
 const userInterest = require("./api/routes/userInterest");
 const stockData = require("./api/routes/stockData");
+const companyFinancials = require("./api/routes/companyFinancials");
 
 
 // var dotenv = require('dotenv');
@@ -43,6 +44,7 @@ app.use("/portfolio", userPortfolio);
 app.use("/logs", userLogs);
 app.use("/interest", userInterest);
 app.use("/stockData", stockData);
+app.use("/financials",companyFinancials);
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
@@ -63,7 +65,7 @@ app.use((req, res, next) => {
   });
 });
 
-// cronJob.start();
+cronJob.start();
 
 // start cronJob for updating Stock Closing Rates at LA time
 historyJob.start();

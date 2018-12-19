@@ -4,7 +4,10 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
+const nodemailer = require("nodemailer");
 const JWT_KEY = "secret";
+
+let oTpArray = [];
 
 router.post("/signup", (req, res, next) => {
   User.find({ email: req.body.email })
@@ -223,6 +226,110 @@ router.get("/getWallet/:email", (req, res, next) => {
     });
 });
 
+router.post("/getOtp", async (req, res, next) => {
+  let user;
+  let otp;
+  try {
+    user = await User.findOne({ email: req.body.email });
+    // if user exists
+    if (user) {
+      otp = generateOtp();
+      console.log(otp);
+      let transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: "arunooralath@gmail.com",
+          pass: "vimalaraj"
+        }
+      });
+
+      let mailOptions = {
+        from: "arunooralath@gmail.com",
+        to: req.body.email,
+        subject: "Password Reset Otp",
+        text: "OTP = " + otp
+      };
+
+      transporter.sendMail(mailOptions, function(error, info) {
+        if (error) {
+          console.log(error);
+        } else {
+          console.log("Email sent: " + info.response);
+          var otpObj = {
+            email: req.body.email,
+            otp: otp
+          };
+          oTpArray.push(otpObj);
+          console.log(oTpArray);
+          res.status(200).json({
+            message: "OTP sent to registered e-mail"
+          });
+        }
+      });
+    } else {
+      res.status(400).json({
+        message: "No such User"
+      });
+    }
+  } catch (err) {}
+});
+
+router.post("/verifyOtp", async (req, res, next) => {
+  let otp = req.body.otp;
+  let obj = oTpArray.find(o => o.email == req.body.email);
+  if (obj) {
+    let otpInArray = obj.otp;
+    // console.log(obj.otp);
+    if (otpInArray == otp) {
+      oTpArray = await oTpArray.filter(obj => obj.email !== req.body.email);
+      // console.log("oTpArray ",oTpArray);
+      res.status(200).json({
+        msg: "OTP verified"
+      });
+    } else {
+      res.status(400).json({
+        err: "OTP verified"
+      });
+    }
+  } else {
+    res.status(500).json({
+      err: "Error"
+    });
+  }
+});
+
+router.post("/resetPassworsd", async (req, res, next) => {
+  let user;
+  let newPassword = req.body.newPassword;
+  try {
+    user = await User.findOne({ email: req.body.email });
+    if (user) {
+      bcrypt.hash(newPassword, 10, (err, hash) => {
+        if (err) {
+          return res.status(500).json({
+            error: err
+          });
+        } else {
+          User.updateOne(
+            { email: req.body.email },
+            {
+              $set: {
+                password: hash
+              }
+            }
+          )
+            .exec()
+            .then(result => {
+              res.status(201).json({
+                message: "Password Changed"
+              });
+            });
+        }
+      });
+    }
+  } catch (err) {}
+});
+
 // admin services
 router.get("/", async (req, res, next) => {
   let user;
@@ -274,10 +381,18 @@ function splitName(fullName) {
   console.log(name[1]);
   if (name[0] === "") {
     name[0] = name[1];
-    name[1]="";
+    name[1] = "";
     //...
   }
   return name;
+}
+
+function generateOtp() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+    var r = (Math.random() * 16) | 0,
+      v = c == "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 var countryDetails = {

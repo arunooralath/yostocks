@@ -11,7 +11,7 @@ module.exports = {
     new CronJob(
       "0 */1 * * * *",
       function() {
-        console.log("You will see this message at 13:07 LA TimeZone");
+        // console.log("You will see this message at 13:07 LA TimeZone");
         var stock = updateStocks();
       },
       null,
