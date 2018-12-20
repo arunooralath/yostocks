@@ -22,7 +22,7 @@ router.post("/portfolioChart", async (req, res, next) => {
   let productList = [];
   let portfolioSpend, portfolioCurrent, gain;
   let currentDate = await formatDateYYYYmmDD(new Date());
-  console.log("currentDate",currentDate);
+  console.log("currentDate", currentDate);
   if (logs.length > 0) {
     portfolioSpend = 0;
 
@@ -301,34 +301,136 @@ router.post("/portfolioChart", async (req, res, next) => {
   }
 });
 
-router.get("/:symbol", async (req, res, next) => {
-  //   yahooFinance.historical(
-  //     {
-  //       symbol: req.params.symbol,
-  //       from: "2018-01-01",
-  //       to: "2018-12-11",
-  //       period: 'd'
-  //       // period: 'd'  // 'd' (daily), 'w' (weekly), 'm' (monthly), 'v' (dividends only)
-  //     },
-  //     function(err, quotes) {
-  //       res.status(200).json({
-  //         quotes: quotes
-  //       });
-  //     }
-  //   );
+router.get("/weekly/:symbol", async (req, res, next) => {
 
-  yahooFinance.quote(
+  let fromDate = await getFromDate(84);
+  console.log(fromDate);
+  fromDate = await formatDateYYYYmmDD(fromDate);
+  console.log(fromDate);
+
+  let currentdate = getCurrentDate();
+  currentdate = formatDateYYYYmmDD(currentdate);
+
+  yahooFinance.historical(
     {
       symbol: req.params.symbol,
-      modules: ["financialData", "earnings"] // see the docs for the full list
+      from: fromDate,
+      to: "2018-12-20",
+      period: "w"
+      // period: 'd'  // 'd' (daily), 'w' (weekly), 'm' (monthly), 'v' (dividends only)
     },
     function(err, quotes) {
-      res.status(200).json({
-        quotes: quotes
-      });
+      if(err){
+        console.log(err) 
+        res.status(500).json({
+          error:err
+        })
+      }      
+      else    
+      res.send(quotes);
     }
   );
+
+  // yahooFinance.quote(
+  //   {
+  //     symbol: req.params.symbol,
+  //     modules: ["financialData", "earnings"] // see the docs for the full list
+  //   },
+  //   function(err, quotes) {
+  //     res.status(200).json({
+  //       quotes: quotes
+  //     });
+  //   }
+  // );
 });
+
+router.get("/monthly/:symbol", async (req, res, next) => {
+
+  let fromDate = await getFromDate(4380);
+  console.log(fromDate);
+  fromDate = await formatDateYYYYmmDD(fromDate);
+  console.log(fromDate);
+
+  let currentdate = getCurrentDate();
+  currentdate = formatDateYYYYmmDD(currentdate);
+
+  yahooFinance.historical(
+    {
+      symbol: req.params.symbol,
+      from: fromDate,
+      to: "2018-12-20",
+      period: "m"
+      // period: 'd'  // 'd' (daily), 'w' (weekly), 'm' (monthly), 'v' (dividends only)
+    },
+    function(err, quotes) {
+      if(err){
+        console.log(err) 
+        res.status(500).json({
+          error:err
+        })
+      }      
+      else    
+      res.send(quotes);
+    }
+  );
+
+  // yahooFinance.quote(
+  //   {
+  //     symbol: req.params.symbol,
+  //     modules: ["financialData", "earnings"] // see the docs for the full list
+  //   },
+  //   function(err, quotes) {
+  //     res.status(200).json({
+  //       quotes: quotes
+  //     });
+  //   }
+  // );
+});
+
+router.get("/daily/:symbol", async (req, res, next) => {
+
+  let fromDate = await getFromDate(13);
+  console.log(fromDate);
+  fromDate = await formatDateYYYYmmDD(fromDate);
+  console.log(fromDate);
+
+  let currentdate = getCurrentDate();
+  currentdate = formatDateYYYYmmDD(currentdate);
+
+  yahooFinance.historical(
+    {
+      symbol: req.params.symbol,
+      from: fromDate,
+      to: "2018-12-20",
+      period: "d"
+      // period: 'd'  // 'd' (daily), 'w' (weekly), 'm' (monthly), 'v' (dividends only)
+    },
+    function(err, quotes) {
+      if(err){
+        console.log(err) 
+        res.status(500).json({
+          error:err
+        })
+      }      
+      else    
+      res.send(quotes);
+    }
+  );
+
+  // yahooFinance.quote(
+  //   {
+  //     symbol: req.params.symbol,
+  //     modules: ["financialData", "earnings"] // see the docs for the full list
+  //   },
+  //   function(err, quotes) {
+  //     res.status(200).json({
+  //       quotes: quotes
+  //     });
+  //   }
+  // );
+});
+
+
 
 // get current date
 function getCurrentDate() {
@@ -395,6 +497,17 @@ async function formatDateYYYYmmDD(date) {
   if (day.length < 2) day = "0" + day;
 
   return [year, month, day].join("-");
+}
+
+//function to substract date
+async function getFromDate(days) {  
+  var date = new Date();
+  var last = new Date(date.getTime() - days * 24 * 60 * 60 * 1000);
+  // var day = last.getDate();
+  // var month = last.getMonth() + 1;
+  // var year = last.getFullYear();
+  return last;
+
 }
 
 // function to return product history prices
