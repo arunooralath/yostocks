@@ -309,7 +309,7 @@ router.get("/weekly/:symbol", async (req, res, next) => {
   console.log(fromDate);
 
   let currentdate = getCurrentDate();
-  currentdate = formatDateYYYYmmDD(currentdate);
+  currentdate = await formatDateYYYYmmDD(currentdate);
 
   yahooFinance.historical(
     {
@@ -352,7 +352,7 @@ router.get("/monthly/:symbol", async (req, res, next) => {
   console.log(fromDate);
 
   let currentdate = getCurrentDate();
-  currentdate = formatDateYYYYmmDD(currentdate);
+  currentdate = await formatDateYYYYmmDD(currentdate);
 
   yahooFinance.historical(
     {
@@ -389,14 +389,13 @@ router.get("/monthly/:symbol", async (req, res, next) => {
 
 router.get("/daily/:symbol", async (req, res, next) => {
 
-  let fromDate = await getFromDate(20);
-  console.log(fromDate);
+  let fromDate = await getFromDate(20);  
   fromDate = await formatDateYYYYmmDD(fromDate);
   console.log(fromDate);
 
   let currentdate = getCurrentDate();
-  currentdate = formatDateYYYYmmDD(currentdate);
-
+  currentdate = await formatDateYYYYmmDD(currentdate);
+  console.log(currentdate);
   yahooFinance.historical(
     {
       symbol: req.params.symbol,
