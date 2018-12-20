@@ -315,7 +315,7 @@ router.get("/weekly/:symbol", async (req, res, next) => {
     {
       symbol: req.params.symbol,
       from: fromDate,
-      to: "2018-12-20",
+      to: currentdate,
       period: "w"
       // period: 'd'  // 'd' (daily), 'w' (weekly), 'm' (monthly), 'v' (dividends only)
     },
@@ -358,7 +358,7 @@ router.get("/monthly/:symbol", async (req, res, next) => {
     {
       symbol: req.params.symbol,
       from: fromDate,
-      to: "2018-12-20",
+      to: currentdate,
       period: "m"
       // period: 'd'  // 'd' (daily), 'w' (weekly), 'm' (monthly), 'v' (dividends only)
     },
@@ -389,7 +389,7 @@ router.get("/monthly/:symbol", async (req, res, next) => {
 
 router.get("/daily/:symbol", async (req, res, next) => {
 
-  let fromDate = await getFromDate(13);
+  let fromDate = await getFromDate(20);
   console.log(fromDate);
   fromDate = await formatDateYYYYmmDD(fromDate);
   console.log(fromDate);
@@ -401,7 +401,7 @@ router.get("/daily/:symbol", async (req, res, next) => {
     {
       symbol: req.params.symbol,
       from: fromDate,
-      to: "2018-12-20",
+      to: currentdate,
       period: "d"
       // period: 'd'  // 'd' (daily), 'w' (weekly), 'm' (monthly), 'v' (dividends only)
     },
