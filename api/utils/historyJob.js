@@ -13,7 +13,7 @@ module.exports = {
       " 00 00 20 * * *",
       function() {
         console.log("Add history values to DB");
-        // var history = updateHistory();
+        var history = updateHistory();
       },
       null,
       true,
