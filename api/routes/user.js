@@ -6,6 +6,8 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const nodemailer = require("nodemailer");
 const JWT_KEY = "secret";
+const RST_KEY = "iwillresetpassword";
+const resetAuth = require("../utils/resetAuth")
 
 let oTpArray = [];
 
@@ -235,6 +237,7 @@ router.post("/getOtp", async (req, res, next) => {
     if (user) {
       otp = generateOtp();
       console.log(otp);
+
       let transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
@@ -261,8 +264,19 @@ router.post("/getOtp", async (req, res, next) => {
           };
           oTpArray.push(otpObj);
           console.log(oTpArray);
+          const token = jwt.sign(
+            {
+              email: req.body.email
+            },
+            RST_KEY,
+            {
+              expiresIn: "1h"
+            }
+          );
+
           res.status(200).json({
-            message: "OTP sent to registered e-mail"
+            message: "OTP sent to registered e-mail",
+            token: token
           });
         }
       });
@@ -271,24 +285,29 @@ router.post("/getOtp", async (req, res, next) => {
         message: "No such User"
       });
     }
-  } catch (err) {}
+  } catch (err) {
+    res.status(500).json({
+      error: err
+    });
+  }
 });
 
 router.post("/verifyOtp", async (req, res, next) => {
   let otp = req.body.otp;
+  let email = req.body.email;
   let obj = oTpArray.find(o => o.email == req.body.email);
   if (obj) {
     let otpInArray = obj.otp;
     // console.log(obj.otp);
     if (otpInArray == otp) {
-      oTpArray = await oTpArray.filter(obj => obj.email !== req.body.email);
+      // oTpArray = await oTpArray.filter(obj => obj.email !== req.body.email);
       // console.log("oTpArray ",oTpArray);
       res.status(200).json({
         msg: "OTP verified"
       });
     } else {
       res.status(400).json({
-        err: "OTP verified"
+        err: "OTP Not verified"
       });
     }
   } else {
@@ -298,11 +317,45 @@ router.post("/verifyOtp", async (req, res, next) => {
   }
 });
 
+router.post("/resetPassword",resetAuth, async (req, res, next) => {
+  
+  let user = await User.findOne({ email: req.body.email });
+  if (user) {
+    bcrypt.hash(req.body.password, 10, (err, hash) => {
+      if (err) {
+        return res.status(500).json({
+          error: err
+        });
+      } else {
+        User.updateOne(
+          { email: req.body.email },
+          {
+            $set: {              
+              password: hash
+            }
+          }
+        )
+          .exec()
+          .then(result => {
+            res.status(201).json({
+              message: "Password Resetted"
+            });
+          });
+      }
+    });
+  } else {
+    res.status(500).json({
+      error: "No user Found"
+    });
+  }
+});
+
 router.post("/resetPassworsd", async (req, res, next) => {
   let user;
-  let newPassword = req.body.newPassword;
+  let newPassword = req.body.newPassword;  
   try {
     user = await User.findOne({ email: req.body.email });
+    console.log(user);
     if (user) {
       bcrypt.hash(newPassword, 10, (err, hash) => {
         if (err) {
