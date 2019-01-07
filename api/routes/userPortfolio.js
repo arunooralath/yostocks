@@ -6,12 +6,32 @@ const BuySellTransactions = require("../models/buySellTransactions");
 const WareHouseStock = require("../models/warehouseStock");
 const User = require("../models/user");
 const axios = require("axios");
+const Product = require("../models/product");
 
 // fetch all UserPortfolio by email
 router.get("/:email", async (req, res, next) => {
-  var userPortfolio = await UserPortfolio.find({ email: req.params.email });
-  console.log(userPortfolio);
-  res.send(userPortfolio);
+  let userPortfolio = await UserPortfolio.find({ email: req.params.email });
+  // console.log(userPortfolio);
+  let portfolioResponse = [];
+
+  for (i = 0; i < userPortfolio.length; i++) {
+    console.log(userPortfolio[i]);
+    const product = await Product.findOne({ symbol: userPortfolio[i].symbol });
+    const prod = {
+      id: userPortfolio[i].id,
+      email: userPortfolio[i].email,
+      symbol: userPortfolio[i].symbol,
+      brandname: userPortfolio[i].brandname,
+      stockUnits: userPortfolio[i].stockUnits,
+      baseValueEntry: userPortfolio[i].baseValueEntry,
+      baseValueLast: userPortfolio[i].baseValueLast,
+      baseCurrency: userPortfolio[i].baseCurrency,
+      logo_url:product.logo_url
+    };
+    portfolioResponse.push(prod);
+  }
+
+  res.send(portfolioResponse);
 });
 
 // fetch all UserPortfolio by email
@@ -130,7 +150,7 @@ router.post("/status", async (req, res, next) => {
 router.post("/details", async (req, res, next) => {
   let logs, portfolio;
   let userCurrency = req.body.localcurrency;
-  console.log("portfolio details -body ",req.body);
+  console.log("portfolio details -body ", req.body);
   try {
     logs = await BuySellTransactions.find({
       emailId: req.body.email,
@@ -187,15 +207,15 @@ router.post("/details", async (req, res, next) => {
 
     equity = parseFloat(portfolio.baseValueLast) * exgRate;
     equity = Number(Number(equity).toFixed(4));
-    boughtAt = (purchaseAmount - soldAmount)/pUnits;
-    boughtAt = boughtAt *exgRate;
+    boughtAt = (purchaseAmount - soldAmount) / pUnits;
+    boughtAt = boughtAt * exgRate;
     boughtAt = Number(Number(boughtAt).toFixed(4));
     let stat = equity - boughtAt;
     res.status(200).json({
       yourShares: logUnits,
       equity: equity,
-      boughtAt:boughtAt,
-      status:stat
+      boughtAt: boughtAt,
+      status: stat
     });
   } else {
     res.status(500).json({
