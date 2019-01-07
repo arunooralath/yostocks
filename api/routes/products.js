@@ -26,6 +26,7 @@ router.get("/list/:currency", async (req, res, next) => {
   let prodResponse = [];
   try {
     let product = await WarehouseStock.find();
+    // console.log(product);
 
     product.forEach(element => {
       arr.push(element.symbol);
@@ -43,7 +44,11 @@ router.get("/list/:currency", async (req, res, next) => {
       // let change = response.data["Global Quote"]["09. change"];
 
       let basePrice = parseFloat(product[i].baseValue);
-      let change = basePrice - (parseFloat(product[i].preBaseValue));
+      let change = basePrice - parseFloat(product[i].preBaseValue);
+
+      // find product from product Table
+      const prdt = await Product.findOne({ symbol: product[i].symbol });
+      console.log(prdt.logo_url);
 
       const forex = await axios.get(
         "https://api.exchangeratesapi.io/latest?base=" +
@@ -64,14 +69,15 @@ router.get("/list/:currency", async (req, res, next) => {
         _id: product[i]._id,
         symbol: product[i].symbol,
         brandname: product[i].brandname,
-        logo_url: product[i].logo_url,
-        currency: product[i].currency,
-        tags: [product[i].tags],
-        date: product[i].date,
+        logo_url: prdt.logo_url,
+        currency: product[i].baseCurrency,
+        tags: [prdt.tags],
+        date: prdt.date,
         localprice: localcurrencyprice,
         change: change,
         status: stat
       };
+      // console.log(prod);
       prodResponse.push(prod);
     }
 
@@ -130,7 +136,7 @@ router.post("/add", async (req, res, next) => {
         brandname: req.body.brandname,
         units: "0",
         baseValue: "0",
-        preBaseValue:"0",
+        preBaseValue: "0",
         totalValue: "0",
         baseCurrency: req.body.currency
       });

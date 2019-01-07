@@ -344,7 +344,7 @@ router.post("/resetPassword",resetAuth, async (req, res, next) => {
       }
     });
   } else {
-    res.status(500).json({
+    res.status(400).json({
       error: "No user Found"
     });
   }
