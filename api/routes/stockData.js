@@ -22,6 +22,7 @@ router.post("/portfolioChart", async (req, res, next) => {
   let productList = [];
   let portfolioSpend, portfolioCurrent, gain;
   let currentDate = await formatDateYYYYmmDD(new Date());
+  // sDate = currentDate;
   console.log("currentDate", currentDate);
   if (logs.length > 0) {
     portfolioSpend = 0;
@@ -36,6 +37,7 @@ router.post("/portfolioChart", async (req, res, next) => {
 
       if (i == 0) {
         sDate = await formatDateYYYYmmDD(logs[i].date);
+        console.log("1.",sDate);
 
         // calculate amount Spend
         if (logs[i].type == "buy") {
@@ -254,9 +256,10 @@ router.post("/portfolioChart", async (req, res, next) => {
     }
 
     // incement the date and generate the chart till currentdate
+    console.log("Sdate",sDate);
     sDate = await getNextDay(sDate);
     if (currentDate !== sDate) {
-      console.log(currentDate, sDate);
+      console.log("ssss-",currentDate, sDate);
       while (sDate !== currentDate) {
         // code block to be executed
         currentDatePortfolio = 0;
@@ -479,6 +482,7 @@ function formatDate(currentDate) {
 
 // function to get date of nextDay
 async function getNextDay(day) {
+  
   var nextDay = new Date(day);
   nextDay.setDate(nextDay.getDate() + 1);
   // console.log("**",await formatDateYYYYmmDD(nextDay));
