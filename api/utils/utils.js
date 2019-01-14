@@ -23,6 +23,30 @@ module.exports = {
     var year = currentDate.getFullYear();
     var monthDateYear = month + 1 + "-" + date + "-" + year;
     return monthDateYear;
+  },
+  getCurrentLaDate: function() {
+    // create Date object for current location
+    var d = new Date();
+
+    // convert to msec
+    // add local time zone offset
+    // get UTC time in msec
+    var utc = d.getTime() + d.getTimezoneOffset() * 60000;
+
+    // create new Date object for different city
+    // using supplied offset
+    var nd = new Date(utc + 3600000 * -8.0);
+
+    // return time as a string
+    // return "The local time in " + city + " is " + nd.toLocaleString();
+    return nd;
+  },
+  formatDateYYMMDD: function(currentDate) {
+    var date = currentDate.getDate();
+    var month = currentDate.getMonth();
+    var year = currentDate.getFullYear();
+    var monthDateYear = year + "-" + month + 1 + "-" + date;
+    return monthDateYear;
   }
 };
 

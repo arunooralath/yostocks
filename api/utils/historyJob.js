@@ -9,7 +9,7 @@ const utils = require("../utils/utils");
 module.exports = {
   start: function() {
     // console.log("Start - Update History Job");
-    new CronJob(      
+    new CronJob(
       "0 */1 * * * *",
       // "00 00 20 * * 0-7",
       function() {
@@ -85,14 +85,16 @@ async function updateHistory() {
     // console.log(frxRes.data.rates.HUF);
 
     for (i = 0; i < products.length; i++) {
-    let symbl = symbolList.find(o => o.symbol == products[i].symbol);
+      let symbl = symbolList.find(o => o.symbol == products[i].symbol);
+
+      let laDate = utils.formatDateYYMMDD(utils.getCurrentLaDate());
 
       var history = new productHistory({
         _id: new mongoose.Types.ObjectId(),
         symbol: symbl.symbol,
-        date: utils.getCurrentDate(),
+        date: laDate,
         price: symbl.price,
-        currency:products[i].currency,
+        currency: products[i].currency,
         HUF: frxRes.data.rates.HUF,
         NOK: frxRes.data.rates.NOK,
         ISK: frxRes.data.rates.ISK,
@@ -101,7 +103,7 @@ async function updateHistory() {
         SEK: frxRes.data.rates.SEK,
         DKK: frxRes.data.rates.DKK
       });
-       let result = await history.save();
+      let result = await history.save();
       console.log(history);
     }
   } catch (err) {

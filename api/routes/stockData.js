@@ -23,7 +23,7 @@ router.post("/portfolioChart", async (req, res, next) => {
   let portfolioSpend, portfolioCurrent, gain;
   let currentDate = await formatDateYYYYmmDD(new Date());
   // sDate = currentDate;
-  console.log("currentDate", currentDate);
+  // console.log("currentDate", currentDate);
   if (logs.length > 0) {
     portfolioSpend = 0;
 
@@ -37,7 +37,7 @@ router.post("/portfolioChart", async (req, res, next) => {
 
       if (i == 0) {
         sDate = await formatDateYYYYmmDD(logs[i].date);
-        console.log("1.",sDate);
+        // console.log("1.",sDate);
 
         // calculate amount Spend
         if (logs[i].type == "buy") {
@@ -259,7 +259,7 @@ router.post("/portfolioChart", async (req, res, next) => {
     console.log("Sdate",sDate);
     sDate = await getNextDay(sDate);
     if (currentDate !== sDate) {
-      console.log("ssss-",currentDate, sDate);
+      // console.log("ssss-",currentDate, sDate);
       while (sDate !== currentDate) {
         // code block to be executed
         currentDatePortfolio = 0;
@@ -516,7 +516,7 @@ async function getFromDate(days) {
 // function to return product history prices
 async function getHistory(startDate, symbol, localCurrency) {
   var date = await formatDateYYYYmmDD(startDate);
-  console.log(date);
+  // console.log(date);
   let historyResult = await ProductHistory.findOne({
     symbol: symbol,
     date: date
