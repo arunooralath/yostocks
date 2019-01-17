@@ -10,8 +10,8 @@ module.exports = {
   start: function() {
     // console.log("Start - Update History Job");
     new CronJob(
-      // "0 */1 * * * *",
-      "00 00 20 * * 0-7",
+      "0 */1 * * * *",
+      // "00 00 20 * * 0-7",
       function() {
         console.log("Add history values to DB");
         var history = updateHistory();
