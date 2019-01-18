@@ -54,16 +54,16 @@ router.post("/portfolioChart", async (req, res, next) => {
         var datesObj = {
           date: eDate,
           portfolioSpend: portfolioSpend,
-          portfolioCurrent: currentDatePortfolio,
+          portfolioCurrent: cDatePortfolio,
           gain: gain
         };
         // push datesObj to datesArray
-        datesArray.push(datesObj);        
+        datesArray.push(datesObj);
       }
 
       if (eDate !== currentDate && i == 0) {
         sDate = await formatDateYYYYmmDD(logs[i].date);
-        console.log("1.",sDate);
+        console.log("1.", sDate);
 
         // calculate amount Spend
         if (logs[i].type == "buy") {
@@ -104,10 +104,9 @@ router.post("/portfolioChart", async (req, res, next) => {
         };
         // console.log("add to dict", dictObject);
         productList.push(dictObject);
-      } else if(i > 0) {
+      } else if (i > 0) {
         // if not first transaction
         if (eDate == sDate) {
-          
           console.log("edate == sdate");
           // add symbol to object array -----------------------------------------------
           var foundIndex = productList.findIndex(
@@ -319,6 +318,133 @@ router.post("/portfolioChart", async (req, res, next) => {
   }
 });
 
+router.post("/portfolioMap", async (req, res, next) => {
+  let email = req.body.email;
+  let localCurrency = req.body.localcurrency;
+  let logs, endDate, startDate, portfolioSpend;
+  let datesArray = [];
+
+  // search for portfolio transactions from BuySellTransactions
+  try {
+    logs = await BuySellTransactions.find({ emailId: req.body.email }).sort({
+      date: 1
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err
+    });
+  }
+
+  // check wether empty portfolio or not
+  if (logs.length > 0) {
+    portfolioSpend = 0;
+    // iterate through existing portfolio
+    for (i = 0; i < logs.length; i++) {
+      endDate = logs[i].date;
+
+      // get date of first transaction
+      if (compareUTCdate(logs[i].date)) {
+        // set the portfolioSpend to 0
+        portfolioSpend = 0;
+        console.log("it is today", logs[i].date);
+
+        // format endDate to yyyy-mm-dd
+        endDate = new Date(endDate).toISOString().slice(0, 10);
+        console.log(endDate);
+
+        // check for date in dates array
+        let obj = datesArray.find(x => x.date === endDate);
+        if (obj) {
+          portfolioSpend = parseFloat(obj.portfolioSpend);
+          // get current portfolio values
+          var currentDatePortfolio = parseFloat(obj.portfolioSpend);
+          var localCurrentPrice = await getLiveQoute(
+            logs[i].symbol,
+            localCurrency
+          );
+
+          // calculate portfolio amount Spend
+          if (logs[i].type == "buy") {
+            portfolioSpend += parseFloat(logs[i].localCurrencyAmount);
+            currentDatePortfolio +=
+              parseFloat(logs[i].units) * parseFloat(localCurrentPrice);
+          } else if (logs[i].type == "sell") {
+            portfolioSpend -= parseFloat(logs[i].localCurrencyAmount);
+            currentDatePortfolio -=
+              parseFloat(logs[i].units) * parseFloat(localCurrentPrice);
+          }
+          const gain = currentDatePortfolio - portfolioSpend;
+          let index = datesArray.indexOf(obj);
+          datesArray.fill(
+            (obj.portfolioSpend = portfolioSpend),
+            (obj.portfolioCurrent = currentDatePortfolio),
+            (obj.gain = gain)
+          );
+
+        } else {
+          // calculate portfolio amount Spend
+          if (logs[i].type == "buy") {
+            portfolioSpend += parseFloat(logs[i].localCurrencyAmount);
+          } else if (logs[i].type == "sell") {
+            portfolioSpend -= parseFloat(logs[i].localCurrencyAmount);
+          }
+          var currentDatePortfolio = 0;
+          var localCurrentPrice = await getLiveQoute(
+            logs[i].symbol,
+            localCurrency
+          );
+          currentDatePortfolio +=
+            parseFloat(logs[i].units) * parseFloat(localCurrentPrice);
+          const gain = currentDatePortfolio - portfolioSpend;
+          // create dates object
+          var datesObj = {
+            date: endDate,
+            portfolioSpend: portfolioSpend,
+            portfolioCurrent: currentDatePortfolio,
+            gain: gain
+          };
+          // push datesObj to datesArray
+          datesArray.push(datesObj);
+        }
+      }
+      else {
+        if (i == 0) {
+          console.log("yahoo", endDate);
+          // calculate portfolio amount Spend
+          if (logs[i].type == "buy") {
+            portfolioSpend += parseFloat(logs[i].localCurrencyAmount);
+          } else if (logs[i].type == "sell") {
+            portfolioSpend -= parseFloat(logs[i].localCurrencyAmount);
+          }
+          var currentDatePortfolio = 0;
+          var localCurrentPrice = await getHistory(endDate, logs[i].symbol, localCurrency);
+          currentDatePortfolio +=
+            parseFloat(logs[i].units) * parseFloat(localCurrentPrice);
+          const gain = currentDatePortfolio - portfolioSpend;
+          // create dates object
+          var datesObj = {
+            date: endDate,
+            portfolioSpend: portfolioSpend,
+            portfolioCurrent: currentDatePortfolio,
+            gain: gain
+          };
+          // push datesObj to datesArray
+          datesArray.push(datesObj);
+
+        }
+      }
+
+
+
+    }
+    res.send(datesArray);
+  } else {
+    res.status(400).json({
+      message: "No Portfolio Transactions"
+    });
+  }
+});
+
 router.get("/weekly/:symbol", async (req, res, next) => {
   let fromDate = await getFromDate(84);
   console.log(fromDate);
@@ -518,7 +644,7 @@ async function getFromDate(days) {
 // function to return product history prices
 async function getHistory(startDate, symbol, localCurrency) {
   var date = await formatDateYYYYmmDD(startDate);
-  // console.log(date);
+  console.log(date,symbol,localCurrency);
   let historyResult = await ProductHistory.findOne({
     symbol: symbol,
     date: date
@@ -532,8 +658,8 @@ async function getHistory(startDate, symbol, localCurrency) {
 
 async function getLiveQoute(symbol, localCurrency) {
   const result = await yahooFinance.quote(symbol);
-  // console.log(result["price"]);
   const price = result["price"]["regularMarketPrice"];
+  // console.log(price);
   const currency = result["price"]["currency"];
 
   // calculate the forex
@@ -547,5 +673,18 @@ async function getLiveQoute(symbol, localCurrency) {
   let exgRate = parseFloat(forex.data["rates"][localCurrency]);
   const lcPrice = price * exgRate;
   return lcPrice;
+}
+function compareUTCdate(givenDate) {
+  var GivenDate;
+  var CurrentDate = new Date();   
+  GivenDate = new Date(givenDate);
+  // console.log(GivenDate,CurrentDate);
+  GivenDate = new Date(GivenDate).toISOString().slice(0, 10);
+  CurrentDate = new Date(CurrentDate).toISOString().slice(0, 10);
+  if ((GivenDate === CurrentDate)) {
+    return true;
+  } else {
+    return false;
+  }
 }
 module.exports = router;

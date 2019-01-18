@@ -34,6 +34,117 @@ router.get("/:email", async (req, res, next) => {
   res.send(portfolioResponse);
 });
 
+router.post("/list", async (req, res, next) => {
+  let userPortfolio,logs;
+  let email = req.body.email;
+  let localcurrency = req.body.localCurrency;
+  try {
+    userPortfolio = await UserPortfolio.find({ email: email });
+    logs = await BuySellTransactions.find({ emailId: email });
+  } catch (err) {
+    res.status(500).json({
+      message: "Error"
+    });
+  }
+  let portfolioSpend = 0;
+  let portfolioProductArray = [];
+  let portfolioListArray = [];
+  // console.log(logs);
+  // if portfolio
+  if (logs) {
+    // add products to portfolioProductArray with amount;
+    for (i = 0; i < logs.length; i++) {
+      let amt = 0;
+      let obj = portfolioProductArray.find(x => x.symbol === logs[i].symbol);
+      if (obj) {
+        if (logs[i].type == "buy") {
+          amount =
+            parseFloat(obj.amount) + parseFloat(logs[i].localCurrencyAmount);
+          units = parseFloat(obj.units) + parseFloat(logs[i].units);
+        } else if (logs[i].type == "sell") {
+          amount =
+            parseFloat(obj.amount) - parseFloat(logs[i].localCurrencyAmount);
+          units = parseFloat(obj.units) - parseFloat(logs[i].units);
+        }
+
+        let index = portfolioProductArray.indexOf(obj);
+        portfolioProductArray.fill(
+          (obj.symbol = logs[i].symbol),
+          (obj.amount = amount),
+          (obj.units = units)
+        );
+      } else {
+        var arrObj = {
+          symbol: logs[i].symbol,
+          amount: logs[i].localCurrencyAmount,
+          units: logs[i].units
+        };
+        portfolioProductArray.push(arrObj);
+      }
+    }
+
+    for (i = 0; i < portfolioProductArray.length; i++) {
+      let product,stock,exgRate;
+      try {
+        product = await Product.findOne({
+          symbol: portfolioProductArray[i].symbol
+        });
+        stock = await WareHouseStock.findOne({
+          symbol: portfolioProductArray[i].symbol
+        });
+      } catch (err) {
+        res.status(500).json({
+          message: "Error"
+        });
+        break;
+      }
+
+      try{
+        // calculate the exchange rate
+      const forex = await axios.get(
+        "https://api.exchangeratesapi.io/latest?base=" +
+          product.currency +
+          "&symbols="+localcurrency
+      );
+      exgRate = parseFloat(forex.data["rates"]["DKK"]);
+
+      }catch(err){
+        res.status(500).json({
+          message: "Local Currency Error"
+        });
+      }
+      
+
+      // price from WareHouseStock
+      let price = parseFloat(stock.baseValue);
+
+      // calculate the realtime price in localcurrency
+      let currentLocalPrice =
+        parseFloat(portfolioProductArray[i].units) * price * exgRate;
+      let gain =
+        currentLocalPrice - parseFloat(portfolioProductArray[i].amount);
+      let resObj = {
+        email:email,
+        symbol: portfolioProductArray[i].symbol,
+        brandname: product.brandname,
+        logo_url: product.logo_url,
+        units: portfolioProductArray[i].units,
+        amount: portfolioProductArray[i].amount,
+        gain: gain
+      };
+      // console.log(resObj);
+      portfolioListArray.push(resObj);
+    }
+    res.send(portfolioListArray);
+  } else {
+    res.status(400).json({
+      message: "Portfolio Empty"
+    });
+  }
+
+  // console.log(portfolioProductArray);
+});
+
 // fetch all UserPortfolio by email
 router.get("/transactions/:email", (req, res, next) => {});
 
